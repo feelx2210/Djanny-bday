@@ -31,5 +31,5 @@ export default defineConfig(({ mode }) => ({
       }
     }
   },
-  base: './' // Use relative paths for assets
+  base: '/Djanny-bday/' // Updated to match your renamed repository
 }));

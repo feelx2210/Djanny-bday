@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useState } from 'react';
 import { Heart, Share, MessageCircle, MoreHorizontal, Loader2, AlertCircle, Volume2, VolumeX } from 'lucide-react';
 import { useAudio } from '../contexts/AudioContext';
@@ -27,6 +26,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
   // Mobile detection
   const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+  // Force muted on mobile devices for autoplay to work
+  const shouldBeMuted = isMobileDevice || !shouldAutoplayWithSound;
 
   useEffect(() => {
     const video = videoRef.current;
@@ -81,13 +83,14 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
     const attemptAutoplay = async () => {
       try {
-        video.muted = !shouldAutoplayWithSound;
+        // Force muted on mobile for autoplay to work
+        video.muted = shouldBeMuted;
         
         if (isActive) {
           console.log('Attempting autoplay:', { 
             muted: video.muted, 
-            hasUserInteracted, 
-            shouldAutoplayWithSound
+            isMobile: isMobileDevice,
+            shouldBeMuted
           });
           
           await video.play();
@@ -104,7 +107,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     };
 
     attemptAutoplay();
-  }, [isActive, hasError, isLoading, shouldAutoplayWithSound, hasUserInteracted]);
+  }, [isActive, hasError, isLoading, shouldBeMuted, isMobileDevice]);
 
   const handleVideoClick = () => {
     markUserInteraction();
@@ -116,7 +119,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       video.pause();
       setIsPlaying(false);
     } else {
-      video.muted = !shouldAutoplayWithSound;
+      video.muted = shouldBeMuted;
       video.play().then(() => {
         setIsPlaying(true);
       }).catch(error => {
@@ -127,11 +130,20 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
   const handleMuteToggle = () => {
     markUserInteraction();
-    toggleGlobalMute();
     
-    const video = videoRef.current;
-    if (video) {
-      video.muted = !shouldAutoplayWithSound;
+    // On mobile, we need to toggle the global mute but keep video muted if no interaction
+    if (isMobileDevice) {
+      toggleGlobalMute();
+      const video = videoRef.current;
+      if (video) {
+        video.muted = !shouldAutoplayWithSound || !hasUserInteracted;
+      }
+    } else {
+      toggleGlobalMute();
+      const video = videoRef.current;
+      if (video) {
+        video.muted = !shouldAutoplayWithSound;
+      }
     }
   };
 
@@ -150,8 +162,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         className="w-full h-full object-cover"
         onClick={handleVideoClick}
         loop
-        muted={!shouldAutoplayWithSound}
+        muted={shouldBeMuted}
         playsInline
+        webkit-playsinline="true"
         preload="metadata"
       />
 
@@ -197,14 +210,14 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           className="flex flex-col items-center group"
         >
           <div className="w-12 h-12 bg-secondary/80 rounded-full flex items-center justify-center backdrop-blur-sm group-active:scale-95 transition-transform">
-            {!shouldAutoplayWithSound ? (
+            {shouldBeMuted ? (
               <VolumeX className="w-6 h-6 text-white" />
             ) : (
               <Volume2 className="w-6 h-6 text-white" />
             )}
           </div>
           <span className="text-white text-xs mt-1 font-medium">
-            {!shouldAutoplayWithSound ? 'Unmute' : 'Mute'}
+            {shouldBeMuted ? 'Unmute' : 'Mute'}
           </span>
         </button>
 
@@ -263,20 +276,20 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
         {/* Audio status indicator */}
         <div className="mt-2 flex items-center text-xs text-white/60">
-          {!hasUserInteracted ? (
+          {isMobileDevice && !hasUserInteracted ? (
             <>
               <VolumeX className="w-3 h-3 mr-1" />
-              <span>Swipe to enable sound</span>
+              <span>Tap volume button to enable sound</span>
             </>
           ) : (
             <>
-              {shouldAutoplayWithSound ? (
-                <Volume2 className="w-3 h-3 mr-1" />
-              ) : (
+              {shouldBeMuted ? (
                 <VolumeX className="w-3 h-3 mr-1" />
+              ) : (
+                <Volume2 className="w-3 h-3 mr-1" />
               )}
               <span>
-                {shouldAutoplayWithSound ? 'Playing with sound' : 'Muted'}
+                {shouldBeMuted ? 'Muted' : 'Playing with sound'}
               </span>
             </>
           )}

@@ -31,11 +31,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
   const { hasUserInteracted, isGloballyMuted, toggleGlobalMute, shouldAutoplayWithSound, markUserInteraction } = useAudio();
 
-  // Mobile detection
-  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-  const isAndroid = /Android/i.test(navigator.userAgent);
-
   // Enhanced mobile detection and debugging
   const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent);
@@ -54,23 +49,25 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     }
   }, []);
 
-  // Comprehensive mobile debugging
+  // Comprehensive mobile debugging - only log once per video change
   useEffect(() => {
-    console.log('VideoPlayer Mobile Debug:', {
+    console.log('VideoPlayer Mobile Debug for URL:', {
+      videoUrl,
+      currentUrl,
       isMobile: isMobileDevice,
       isIOS: isIOSDevice,
       isAndroid: isAndroidDevice,
       userAgent,
-      videoUrl,
       alternativeUrl,
-      currentUrl,
       networkQuality,
       hasWebKit: 'webkitRequestFullscreen' in document.createElement('div'),
       hasVideoSupport: !!document.createElement('video').canPlayType,
       mp4Support: document.createElement('video').canPlayType('video/mp4'),
-      webmSupport: document.createElement('video').canPlayType('video/webm')
+      webmSupport: document.createElement('video').canPlayType('video/webm'),
+      hasUserInteracted,
+      shouldAutoplayWithSound
     });
-  }, [videoUrl, isMobileDevice, isIOSDevice, isAndroidDevice, userAgent, currentUrl, networkQuality]);
+  }, [videoUrl]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -79,7 +76,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     const handleLoadStart = () => {
       console.log('Video load started:', {
         url: currentUrl,
-        isMobile,
+        isMobile: isMobileDevice,
         hasUserInteracted,
         shouldAutoplayWithSound
       });
@@ -93,7 +90,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         url: currentUrl,
         duration: video.duration,
         hasUserInteracted,
-        shouldAutoplayWithSound
+        shouldAutoplayWithSound,
+        isMobile: isMobileDevice
       });
       setIsLoading(false);
       setHasError(false);
@@ -121,17 +119,20 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         }
       }
 
-      console.error('Video error:', {
+      console.error('Video error on mobile:', {
         errorMessage,
         errorCode: error?.code,
         url: currentUrl,
         retryCount,
-        hasAlternative: !!alternativeUrl
+        hasAlternative: !!alternativeUrl,
+        isMobile: isMobileDevice,
+        userAgent,
+        networkQuality
       });
 
       // Try alternative URL if available and we haven't tried it yet
       if (alternativeUrl && currentUrl !== alternativeUrl && retryCount < 2) {
-        console.log('Trying alternative URL:', alternativeUrl);
+        console.log('Trying alternative URL on mobile:', alternativeUrl);
         setCurrentUrl(alternativeUrl);
         setRetryCount(prev => prev + 1);
         return;
@@ -139,19 +140,46 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
       setIsLoading(false);
       setHasError(true);
-      setErrorDetails(errorMessage);
+      setErrorDetails(`${errorMessage} (Mobile: ${isMobileDevice ? 'Yes' : 'No'})`);
+    };
+
+    const handleLoadedMetadata = () => {
+      console.log('Video metadata loaded:', {
+        url: currentUrl,
+        duration: video.duration,
+        videoWidth: video.videoWidth,
+        videoHeight: video.videoHeight,
+        isMobile: isMobileDevice
+      });
+    };
+
+    const handleTimeUpdate = () => {
+      // Only log once when video actually starts playing
+      if (video.currentTime > 0 && !video.paused) {
+        console.log('Video started playing on mobile:', {
+          currentTime: video.currentTime,
+          duration: video.duration,
+          url: currentUrl,
+          isMobile: isMobileDevice
+        });
+        video.removeEventListener('timeupdate', handleTimeUpdate);
+      }
     };
 
     video.addEventListener('loadstart', handleLoadStart);
     video.addEventListener('canplay', handleCanPlay);
     video.addEventListener('error', handleError);
+    video.addEventListener('loadedmetadata', handleLoadedMetadata);
+    video.addEventListener('timeupdate', handleTimeUpdate);
 
     return () => {
       video.removeEventListener('loadstart', handleLoadStart);
       video.removeEventListener('canplay', handleCanPlay);
       video.removeEventListener('error', handleError);
+      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      video.removeEventListener('timeupdate', handleTimeUpdate);
     };
-  }, [currentUrl, hasUserInteracted, shouldAutoplayWithSound, retryCount, alternativeUrl]);
+  }, [currentUrl, retryCount, alternativeUrl, isMobileDevice, userAgent, networkQuality]);
 
   // Update currentUrl when videoUrl changes
   useEffect(() => {
@@ -159,7 +187,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     setRetryCount(0);
   }, [videoUrl]);
 
-  // Progressive autoplay effect
+  // Progressive autoplay effect - removed showAudioTransition from dependencies
   useEffect(() => {
     const video = videoRef.current;
     if (!video || hasError || isLoading) return;
@@ -170,16 +198,19 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         video.muted = !shouldAutoplayWithSound;
         
         if (isActive) {
-          await video.play();
-          setIsPlaying(true);
-          console.log('Video autoplaying:', { 
+          console.log('Attempting autoplay on mobile:', { 
             muted: video.muted, 
             hasUserInteracted, 
-            shouldAutoplayWithSound 
+            shouldAutoplayWithSound,
+            isMobile: isMobileDevice,
+            url: currentUrl
           });
+          
+          await video.play();
+          setIsPlaying(true);
 
           // Show audio transition feedback if switching from muted to unmuted
-          if (shouldAutoplayWithSound && !showAudioTransition) {
+          if (shouldAutoplayWithSound && hasUserInteracted) {
             setShowAudioTransition(true);
             setTimeout(() => setShowAudioTransition(false), 2000);
           }
@@ -188,19 +219,31 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           setIsPlaying(false);
         }
       } catch (error) {
-        console.error('Autoplay failed:', error);
+        console.error('Autoplay failed on mobile:', {
+          error,
+          isMobile: isMobileDevice,
+          url: currentUrl,
+          hasUserInteracted,
+          shouldAutoplayWithSound
+        });
         setIsPlaying(false);
       }
     };
 
     attemptAutoplay();
-  }, [isActive, hasError, isLoading, shouldAutoplayWithSound, hasUserInteracted, showAudioTransition]);
+  }, [isActive, hasError, isLoading, shouldAutoplayWithSound, hasUserInteracted, currentUrl, isMobileDevice]);
 
   const handleVideoClick = () => {
     markUserInteraction();
     
     const video = videoRef.current;
     if (!video) return;
+
+    console.log('Video clicked on mobile:', { 
+      isPlaying, 
+      isMobile: isMobileDevice,
+      url: currentUrl 
+    });
 
     if (isPlaying) {
       video.pause();
@@ -209,8 +252,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       video.muted = !shouldAutoplayWithSound;
       video.play().then(() => {
         setIsPlaying(true);
+        console.log('Manual play succeeded on mobile');
       }).catch(error => {
-        console.error('Manual play failed:', error);
+        console.error('Manual play failed on mobile:', error);
       });
     }
   };
@@ -222,6 +266,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     const video = videoRef.current;
     if (video) {
       video.muted = !shouldAutoplayWithSound;
+      console.log('Mute toggled on mobile:', { muted: video.muted, isMobile: isMobileDevice });
     }
   };
 
@@ -236,7 +281,11 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     const video = videoRef.current;
     if (!video) return;
     
-    console.log('Retrying video load:', { currentUrl, retryCount });
+    console.log('Retrying video load on mobile:', { 
+      currentUrl, 
+      retryCount, 
+      isMobile: isMobileDevice 
+    });
     
     if (alternativeUrl && currentUrl === videoUrl && retryCount === 0) {
       setCurrentUrl(alternativeUrl);
@@ -256,14 +305,32 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   };
 
   const getVideoAttributes = () => {
-    return {
+    const baseAttributes = {
       loop: true,
       muted: !shouldAutoplayWithSound,
       playsInline: true,
       'webkit-playsinline': 'true' as const,
-      preload: isMobile && networkQuality === 'slow' ? 'metadata' : 'auto',
-      ...(isIOS && { 'x-webkit-airplay': 'allow' })
+      preload: (isMobileDevice && networkQuality === 'slow') ? 'metadata' : 'auto',
     };
+
+    // Add iOS-specific attributes
+    if (isIOSDevice) {
+      return {
+        ...baseAttributes,
+        'x-webkit-airplay': 'allow' as const,
+        controls: false, // Ensure no controls on iOS
+      };
+    }
+
+    // Add Android-specific attributes
+    if (isAndroidDevice) {
+      return {
+        ...baseAttributes,
+        'data-setup': '{}',
+      };
+    }
+
+    return baseAttributes;
   };
 
   return (
@@ -298,6 +365,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             {errorDetails && (
               <p className="text-white/70 text-xs mb-4">{errorDetails}</p>
             )}
+            <p className="text-white/50 text-xs mb-4">
+              Retry #{retryCount} • URL: {currentUrl.includes('raw=1') ? 'Raw' : 'Direct'}
+            </p>
             <button
               onClick={retryVideo}
               className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm transition-colors"
@@ -317,6 +387,15 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               Audio enabled!
             </p>
           </div>
+        </div>
+      )}
+
+      {/* Mobile debug indicator */}
+      {isMobileDevice && (
+        <div className="absolute top-2 left-2 z-20 bg-black/70 rounded px-2 py-1">
+          <p className="text-white text-xs">
+            📱 {isIOSDevice ? 'iOS' : isAndroidDevice ? 'Android' : 'Mobile'}
+          </p>
         </div>
       )}
 

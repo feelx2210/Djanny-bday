@@ -27,10 +27,24 @@ export const useVideoLoader = () => {
 
   const convertDropboxUrl = (originalUrl: string) => {
     if (originalUrl.includes('dropbox.com') && originalUrl.includes('dl=1')) {
-      // Try raw=1 format for mobile compatibility
+      // For mobile, try raw=1 format first, but also provide dl=1 as fallback
       const rawUrl = originalUrl.replace('dl=1', 'raw=1');
-      console.log('Mobile Dropbox URL conversion:', { original: originalUrl, raw: rawUrl, isMobile, userAgent });
-      return { primary: rawUrl, fallback: originalUrl };
+      
+      console.log('Dropbox URL conversion for mobile:', { 
+        original: originalUrl, 
+        raw: rawUrl, 
+        isMobile, 
+        isIOS,
+        userAgent 
+      });
+      
+      // On mobile, prefer raw=1 for direct video streaming
+      if (isMobile) {
+        return { primary: rawUrl, fallback: originalUrl };
+      } else {
+        // On desktop, dl=1 might work better
+        return { primary: originalUrl, fallback: rawUrl };
+      }
     }
     return { primary: originalUrl, fallback: originalUrl };
   };
@@ -40,7 +54,12 @@ export const useVideoLoader = () => {
       setLoading(true);
       setError(null);
       
-      console.log('Loading videos - Mobile detection:', { isMobile, isIOS, userAgent });
+      console.log('Loading videos - Enhanced mobile detection:', { 
+        isMobile, 
+        isIOS, 
+        userAgent,
+        timestamp: new Date().toISOString()
+      });
       
       // Use the correct base URL from Vite configuration
       const baseUrl = import.meta.env.BASE_URL;
@@ -57,6 +76,16 @@ export const useVideoLoader = () => {
         const originalUrl = video.videoUrl || `${baseUrl}videos/${video.filename}`;
         const { primary, fallback } = convertDropboxUrl(originalUrl);
         
+        console.log('Processing video URL:', {
+          id: video.id,
+          filename: video.filename,
+          originalUrl,
+          primaryUrl: primary,
+          fallbackUrl: fallback,
+          isMobile,
+          hasFallback: fallback !== primary
+        });
+        
         return {
           ...video,
           videoUrl: primary,
@@ -65,9 +94,22 @@ export const useVideoLoader = () => {
       });
       
       setVideos(videosWithUrls);
-      console.log(`Loaded ${videosWithUrls.length} videos from videos.json`, { isMobile, videosWithUrls });
+      console.log(`Successfully loaded ${videosWithUrls.length} videos from videos.json`, { 
+        isMobile, 
+        isIOS,
+        videosWithUrls: videosWithUrls.map(v => ({
+          id: v.id,
+          primaryUrl: v.videoUrl,
+          alternativeUrl: v.alternativeUrl
+        }))
+      });
     } catch (err) {
-      console.error('Error loading videos:', err, { isMobile, userAgent });
+      console.error('Error loading videos on mobile:', err, { 
+        isMobile, 
+        isIOS, 
+        userAgent,
+        timestamp: new Date().toISOString()
+      });
       setError(`Failed to load videos: ${err instanceof Error ? err.message : 'Unknown error'}`);
       // Fallback to empty array if videos.json doesn't exist yet
       setVideos([]);

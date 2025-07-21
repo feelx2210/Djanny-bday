@@ -163,7 +163,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         duration: video.duration,
         videoWidth: video.videoWidth,
         videoHeight: video.videoHeight,
-        hasAudio: video.mozHasAudio || Boolean(video.webkitAudioDecodedByteCount) || Boolean(video.audioTracks?.length),
+        hasAudio: Boolean((video as any).mozHasAudio || (video as any).webkitAudioDecodedByteCount || (video as any).audioTracks?.length),
         isMobile: isMobileDevice
       });
     };

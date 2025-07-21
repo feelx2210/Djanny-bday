@@ -6,24 +6,25 @@
       "filename": "Greetings Number 1",
       "username": "felix-the-cat",
       "description": "🎉 Happy Birthday Djanny! Hope your special day is as amazing as you are! Can't wait to celebrate with you! 🎂✨",
-      "videoUrl": "https://res.cloudinary.com/df7nvdmsy/video/upload/vid1_txwgah.mp4"
+      "videoUrl": "https://res.cloudinary.com/df7nvdmsy/video/upload/c_scale,w_480,q_auto:low,f_mp4/vid1_txwgah.mp4"
     },
     {
       "id": 2,
       "filename": "birthday-video-2.mp4",
       "username": "college_friends",
       "description": "🥳 From all of us to you - may this new year of life bring you endless joy, laughter, and all your heart desires! 🎈",
-      "videoUrl": "https://res.cloudinary.com/df7nvdmsy/video/upload/vid2_br5hhd.mp4"
+      "videoUrl": "https://res.cloudinary.com/df7nvdmsy/video/upload/c_scale,w_480,q_auto:low,f_mp4/vid2_br5hhd.mp4"
     },
     {
       "id": 3,
       "filename": "birthday-video-3.mp4",
       "username": "Palmbeach-stuttgart",
       "description": "🎂 Remember when we used to dream about growing up? Well, here we are! Happy Birthday to my forever friend! 💖",
-      "videoUrl": "https://res.cloudinary.com/df7nvdmsy/video/upload/vid3_ndtiyf.mp4"
+      "videoUrl": "https://res.cloudinary.com/df7nvdmsy/video/upload/c_scale,w_480,q_auto:low,f_mp4/vid3_ndtiyf.mp4"
     }
   ],
   "_instructions": {
+    "mobile_optimization": "URLs now include mobile-optimized parameters: c_scale,w_480 (480px width), q_auto:low (low quality for faster loading), f_mp4 (force MP4 format)",
     "how_to_get_dropbox_urls": [
       "1. Upload your video to Dropbox",
       "2. Right-click the video file and select 'Share'",
@@ -33,6 +34,6 @@
     ],
     "for_local_development": "If videoUrl is not provided, the app will fallback to ./videos/filename for local development",
     "github_pages_deployment": "Make sure your GitHub Pages is enabled and using GitHub Actions for deployment",
-    "cloudinary_simple_urls": "Using simple Cloudinary URLs without optimization parameters for mobile compatibility"
+    "mobile_compatibility": "Using mobile-optimized Cloudinary URLs with compression and proper format specification"
   }
 }

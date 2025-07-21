@@ -5,19 +5,33 @@
       "id": 1,
       "filename": "sample-birthday-1.mp4",
       "username": "family_wishes",
-      "description": "🎉 Happy Birthday Djanny! Hope your special day is as amazing as you are! Can't wait to celebrate with you! 🎂✨"
+      "description": "🎉 Happy Birthday Djanny! Hope your special day is as amazing as you are! Can't wait to celebrate with you! 🎂✨",
+      "videoUrl": "https://u.pcloud.link/publink/show?code=YOUR_PCLOUD_CODE_1&filename=sample-birthday-1.mp4"
     },
     {
       "id": 2,
       "filename": "sample-birthday-2.mp4",
       "username": "college_friends",
-      "description": "🥳 From all of us to you - may this new year of life bring you endless joy, laughter, and all your heart desires! 🎈"
+      "description": "🥳 From all of us to you - may this new year of life bring you endless joy, laughter, and all your heart desires! 🎈",
+      "videoUrl": "https://u.pcloud.link/publink/show?code=YOUR_PCLOUD_CODE_2&filename=sample-birthday-2.mp4"
     },
     {
       "id": 3,
       "filename": "sample-birthday-3.mp4",
       "username": "work_colleagues",
-      "description": "🎂 Remember when we used to dream about growing up? Well, here we are! Happy Birthday to my forever friend! 💖"
+      "description": "🎂 Remember when we used to dream about growing up? Well, here we are! Happy Birthday to my forever friend! 💖",
+      "videoUrl": "https://u.pcloud.link/publink/show?code=YOUR_PCLOUD_CODE_3&filename=sample-birthday-3.mp4"
     }
-  ]
+  ],
+  "_instructions": {
+    "how_to_get_pcloud_urls": [
+      "1. Upload your video to pCloud",
+      "2. Right-click the video file and select 'Get public link'",
+      "3. Copy the sharing URL that looks like: https://u.pcloud.link/publink/show?code=XYZ&filename=your-video.mp4",
+      "4. Replace the YOUR_PCLOUD_CODE_X placeholders above with your actual codes",
+      "5. Update the filename field to match your actual video filename"
+    ],
+    "for_local_development": "If videoUrl is not provided, the app will fallback to ./videos/filename for local development",
+    "github_pages_deployment": "Make sure your GitHub Pages is enabled in your repository settings under Pages section"
+  }
 }

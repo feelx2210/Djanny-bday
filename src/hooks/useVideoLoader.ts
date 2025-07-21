@@ -6,6 +6,7 @@ export interface VideoData {
   filename: string;
   username: string;
   description: string;
+  videoUrl?: string; // Optional direct URL for pCloud or other external sources
 }
 
 export interface VideoWithUrl extends VideoData {
@@ -31,7 +32,8 @@ export const useVideoLoader = () => {
       const data = await response.json();
       const videosWithUrls: VideoWithUrl[] = data.videos.map((video: VideoData) => ({
         ...video,
-        videoUrl: `./videos/${video.filename}`
+        // Use direct videoUrl if provided (for pCloud), otherwise fallback to local path
+        videoUrl: video.videoUrl || `./videos/${video.filename}`
       }));
       
       setVideos(videosWithUrls);

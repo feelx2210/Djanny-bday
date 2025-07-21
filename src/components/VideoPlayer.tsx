@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useState } from 'react';
 import { Heart, Share, MessageCircle, MoreHorizontal, Loader2, AlertCircle, Volume2, VolumeX } from 'lucide-react';
 import { useAudio } from '../contexts/AudioContext';
@@ -23,6 +22,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [errorDetails, setErrorDetails] = useState<string>('');
+  const [retryCount, setRetryCount] = useState(0);
 
   const { hasUserInteracted, isGloballyMuted, toggleGlobalMute, shouldAutoplayWithSound, markUserInteraction } = useAudio();
 
@@ -31,25 +31,51 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent);
   const isAndroidDevice = /Android/i.test(navigator.userAgent);
 
+  // Create mobile-optimized URL with fallback
+  const getOptimizedVideoUrl = (originalUrl: string, retryAttempt: number = 0) => {
+    const baseUrl = originalUrl.split('/upload/')[0];
+    const publicId = originalUrl.split('/upload/')[1].split('.')[0].replace(/f_auto,q_auto:good,fl_progressive\//, '');
+    
+    switch (retryAttempt) {
+      case 0:
+        // First attempt: Mobile optimized
+        return `${baseUrl}/upload/f_auto,q_auto:good,fl_progressive/${publicId}`;
+      case 1:
+        // Second attempt: Lower quality for mobile
+        return `${baseUrl}/upload/f_auto,q_auto:low,fl_progressive/${publicId}`;
+      case 2:
+        // Third attempt: Force MP4
+        return `${baseUrl}/upload/f_mp4,q_auto:low/${publicId}.mp4`;
+      default:
+        // Final fallback: Original URL
+        return originalUrl;
+    }
+  };
+
+  const currentVideoUrl = getOptimizedVideoUrl(videoUrl, retryCount);
+
   // Log video setup on mobile
   useEffect(() => {
-    console.log('VideoPlayer setup for Cloudinary:', {
-      videoUrl,
+    console.log('VideoPlayer setup for mobile-optimized Cloudinary:', {
+      originalUrl: videoUrl,
+      optimizedUrl: currentVideoUrl,
+      retryCount,
       isMobile: isMobileDevice,
       isIOS: isIOSDevice,
       isAndroid: isAndroidDevice,
       hasUserInteracted,
       shouldAutoplayWithSound
     });
-  }, [videoUrl]);
+  }, [videoUrl, currentVideoUrl, retryCount]);
 
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
     const handleLoadStart = () => {
-      console.log('Cloudinary video load started:', {
-        url: videoUrl,
+      console.log('Mobile-optimized Cloudinary video load started:', {
+        url: currentVideoUrl,
+        retryCount,
         isMobile: isMobileDevice,
         platform: isIOSDevice ? 'iOS' : isAndroidDevice ? 'Android' : 'Desktop'
       });
@@ -81,8 +107,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     };
 
     const handleCanPlay = () => {
-      console.log('Cloudinary video can play:', {
-        url: videoUrl,
+      console.log('Mobile-optimized Cloudinary video can play:', {
+        url: currentVideoUrl,
+        retryCount,
         duration: video.duration,
         videoWidth: video.videoWidth,
         videoHeight: video.videoHeight,
@@ -91,6 +118,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       });
       setIsLoading(false);
       setHasError(false);
+      setRetryCount(0); // Reset retry count on success
     };
 
     const handleError = (e: Event) => {
@@ -115,24 +143,34 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         }
       }
 
-      console.error('Cloudinary video error:', {
+      console.error('Mobile-optimized Cloudinary video error:', {
         errorMessage,
         errorCode: error?.code,
-        videoUrl,
+        originalUrl: videoUrl,
+        currentUrl: currentVideoUrl,
+        retryCount,
         isMobile: isMobileDevice,
         platform: isIOSDevice ? 'iOS' : isAndroidDevice ? 'Android' : 'Desktop',
         networkState: target.networkState,
         readyState: target.readyState
       });
 
+      // Auto-retry with different URL format
+      if (retryCount < 3) {
+        console.log(`Auto-retrying with attempt ${retryCount + 1}`);
+        setRetryCount(prev => prev + 1);
+        return;
+      }
+
       setIsLoading(false);
       setHasError(true);
-      setErrorDetails(`${errorMessage} (Mobile: ${isMobileDevice ? 'Yes' : 'No'})`);
+      setErrorDetails(`${errorMessage} (Mobile: ${isMobileDevice ? 'Yes' : 'No'}, Attempts: ${retryCount + 1})`);
     };
 
     const handleLoadedMetadata = () => {
-      console.log('Cloudinary video metadata loaded:', {
-        url: videoUrl,
+      console.log('Mobile-optimized Cloudinary video metadata loaded:', {
+        url: currentVideoUrl,
+        retryCount,
         duration: video.duration,
         videoWidth: video.videoWidth,
         videoHeight: video.videoHeight,
@@ -173,7 +211,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         clearTimeout(loadTimeout);
       }
     };
-  }, [videoUrl, isMobileDevice, isIOSDevice, isAndroidDevice]);
+  }, [currentVideoUrl, retryCount, isMobileDevice, isIOSDevice, isAndroidDevice]);
 
   // Autoplay effect
   useEffect(() => {
@@ -222,10 +260,11 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     const video = videoRef.current;
     if (!video) return;
 
-    console.log('Cloudinary video clicked:', { 
+    console.log('Mobile-optimized Cloudinary video clicked:', { 
       isPlaying, 
       isMobile: isMobileDevice,
-      url: videoUrl 
+      url: currentVideoUrl,
+      retryCount
     });
 
     if (isPlaying) {
@@ -235,9 +274,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       video.muted = !shouldAutoplayWithSound;
       video.play().then(() => {
         setIsPlaying(true);
-        console.log('Cloudinary manual play succeeded');
+        console.log('Mobile-optimized Cloudinary manual play succeeded');
       }).catch(error => {
-        console.error('Cloudinary manual play failed:', error);
+        console.error('Mobile-optimized Cloudinary manual play failed:', error);
       });
     }
   };
@@ -261,18 +300,18 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
   const retryVideo = () => {
     markUserInteraction();
-    const video = videoRef.current;
-    if (!video) return;
     
-    console.log('Retrying Cloudinary video:', { 
-      videoUrl, 
+    console.log('Manual retry for mobile-optimized Cloudinary video:', { 
+      originalUrl: videoUrl,
+      currentUrl: currentVideoUrl,
+      retryCount,
       isMobile: isMobileDevice 
     });
     
     setHasError(false);
     setIsLoading(true);
     setErrorDetails('');
-    video.load();
+    setRetryCount(prev => prev + 1);
   };
 
   const getMobileVideoAttributes = () => {
@@ -281,7 +320,14 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       muted: !shouldAutoplayWithSound,
       playsInline: true,
       preload: 'metadata' as const,
+      poster: undefined as string | undefined,
     };
+
+    // Add poster image from Cloudinary for better mobile experience
+    if (currentVideoUrl.includes('cloudinary.com')) {
+      const posterUrl = currentVideoUrl.replace('/video/upload/', '/image/upload/').replace(/\.(mp4|webm|mov)$/, '.jpg');
+      baseAttributes.poster = posterUrl;
+    }
 
     if (isIOSDevice) {
       return {
@@ -308,7 +354,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       {/* Video */}
       <video
         ref={videoRef}
-        src={videoUrl}
+        src={currentVideoUrl}
         className="w-full h-full object-cover"
         onClick={handleVideoClick}
         {...getMobileVideoAttributes()}
@@ -324,7 +370,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             <Loader2 className="w-8 h-8 text-white animate-spin" />
             {isMobileDevice && (
               <p className="text-white text-xs mt-2 text-center">
-                Loading from Cloudinary...
+                Loading optimized mobile video...
+                {retryCount > 0 && <br />}
+                {retryCount > 0 && `Attempt ${retryCount + 1}`}
               </p>
             )}
           </div>
@@ -341,13 +389,13 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               <p className="text-white/70 text-xs mb-2">{errorDetails}</p>
             )}
             <p className="text-white/50 text-xs mb-4">
-              Cloudinary URL: {videoUrl}
+              Mobile-optimized Cloudinary URL: {currentVideoUrl}
             </p>
             <button
               onClick={retryVideo}
               className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm transition-colors"
             >
-              Try Again
+              Try Again {retryCount < 3 ? `(${4 - retryCount} attempts left)` : '(Final attempt)'}
             </button>
           </div>
         </div>
@@ -357,7 +405,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       {isMobileDevice && (
         <div className="absolute top-2 left-2 z-20 bg-black/70 rounded px-2 py-1">
           <p className="text-white text-xs">
-            📱 {isIOSDevice ? 'iOS' : isAndroidDevice ? 'Android' : 'Mobile'} • Cloudinary
+            📱 {isIOSDevice ? 'iOS' : isAndroidDevice ? 'Android' : 'Mobile'} • Optimized
+            {retryCount > 0 && ` • Retry ${retryCount}`}
           </p>
         </div>
       )}

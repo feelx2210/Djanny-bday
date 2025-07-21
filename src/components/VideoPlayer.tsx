@@ -8,17 +8,13 @@ interface VideoPlayerProps {
   description: string;
   username: string;
   isActive: boolean;
-  alternativeUrl?: string;
-  directUrl?: string;
 }
 
 export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   videoUrl,
   description,
   username,
-  isActive,
-  alternativeUrl,
-  directUrl
+  isActive
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -27,40 +23,23 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [errorDetails, setErrorDetails] = useState<string>('');
-  const [currentUrl, setCurrentUrl] = useState(videoUrl);
-  const [retryCount, setRetryCount] = useState(0);
-  const [urlHistory, setUrlHistory] = useState<string[]>([]);
 
   const { hasUserInteracted, isGloballyMuted, toggleGlobalMute, shouldAutoplayWithSound, markUserInteraction } = useAudio();
 
-  // Enhanced mobile detection
+  // Mobile detection for debugging
   const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   const isIOSDevice = /iPad|iPhone|iPod/.test(navigator.userAgent);
   const isAndroidDevice = /Android/i.test(navigator.userAgent);
 
-  // Get all available URLs for fallback
-  const getAllUrls = () => {
-    const urls = [videoUrl];
-    if (alternativeUrl && !urls.includes(alternativeUrl)) urls.push(alternativeUrl);
-    if (directUrl && !urls.includes(directUrl)) urls.push(directUrl);
-    return urls;
-  };
-
-  // Mobile debugging - log once per video change
+  // Log video setup on mobile
   useEffect(() => {
-    const allUrls = getAllUrls();
-    console.log('VideoPlayer Mobile Setup:', {
+    console.log('VideoPlayer setup for Cloudinary:', {
       videoUrl,
-      currentUrl,
-      allAvailableUrls: allUrls,
       isMobile: isMobileDevice,
       isIOS: isIOSDevice,
       isAndroid: isAndroidDevice,
-      userAgent: navigator.userAgent,
       hasUserInteracted,
-      shouldAutoplayWithSound,
-      retryCount,
-      urlHistory
+      shouldAutoplayWithSound
     });
   }, [videoUrl]);
 
@@ -69,10 +48,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     if (!video) return;
 
     const handleLoadStart = () => {
-      console.log('Mobile video load started:', {
-        url: currentUrl,
-        urlType: currentUrl.includes('dl.dropboxusercontent.com') ? 'direct' : 
-                currentUrl.includes('raw=1') ? 'raw' : 'dl',
+      console.log('Cloudinary video load started:', {
+        url: videoUrl,
         isMobile: isMobileDevice,
         platform: isIOSDevice ? 'iOS' : isAndroidDevice ? 'Android' : 'Desktop'
       });
@@ -82,13 +59,12 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     };
 
     const handleCanPlay = () => {
-      console.log('Mobile video can play:', {
-        url: currentUrl,
+      console.log('Cloudinary video can play:', {
+        url: videoUrl,
         duration: video.duration,
         videoWidth: video.videoWidth,
         videoHeight: video.videoHeight,
         readyState: video.readyState,
-        networkState: video.networkState,
         isMobile: isMobileDevice
       });
       setIsLoading(false);
@@ -117,49 +93,24 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         }
       }
 
-      console.error('Mobile video error detailed:', {
+      console.error('Cloudinary video error:', {
         errorMessage,
         errorCode: error?.code,
-        currentUrl,
-        urlType: currentUrl.includes('dl.dropboxusercontent.com') ? 'direct' : 
-                currentUrl.includes('raw=1') ? 'raw' : 'dl',
-        retryCount,
-        availableUrls: getAllUrls(),
-        urlHistory,
+        videoUrl,
         isMobile: isMobileDevice,
         platform: isIOSDevice ? 'iOS' : isAndroidDevice ? 'Android' : 'Desktop',
         networkState: target.networkState,
         readyState: target.readyState
       });
 
-      // Try next URL in sequence
-      const allUrls = getAllUrls();
-      const currentIndex = allUrls.indexOf(currentUrl);
-      const nextIndex = (currentIndex + 1) % allUrls.length;
-      
-      if (retryCount < allUrls.length * 2) { // Allow multiple rounds of retries
-        const nextUrl = allUrls[nextIndex];
-        console.log('Mobile video trying next URL:', {
-          from: currentUrl,
-          to: nextUrl,
-          retryCount,
-          maxRetries: allUrls.length * 2
-        });
-        
-        setCurrentUrl(nextUrl);
-        setUrlHistory(prev => [...prev, currentUrl]);
-        setRetryCount(prev => prev + 1);
-        return;
-      }
-
       setIsLoading(false);
       setHasError(true);
-      setErrorDetails(`${errorMessage} (Mobile: ${isMobileDevice ? 'Yes' : 'No'}, Retries: ${retryCount})`);
+      setErrorDetails(`${errorMessage} (Mobile: ${isMobileDevice ? 'Yes' : 'No'})`);
     };
 
     const handleLoadedMetadata = () => {
-      console.log('Mobile video metadata loaded:', {
-        url: currentUrl,
+      console.log('Cloudinary video metadata loaded:', {
+        url: videoUrl,
         duration: video.duration,
         videoWidth: video.videoWidth,
         videoHeight: video.videoHeight,
@@ -179,14 +130,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       video.removeEventListener('error', handleError);
       video.removeEventListener('loadedmetadata', handleLoadedMetadata);
     };
-  }, [currentUrl, retryCount, isMobileDevice, isIOSDevice, isAndroidDevice]);
-
-  // Reset URL when videoUrl changes
-  useEffect(() => {
-    setCurrentUrl(videoUrl);
-    setRetryCount(0);
-    setUrlHistory([]);
-  }, [videoUrl]);
+  }, [videoUrl, isMobileDevice, isIOSDevice, isAndroidDevice]);
 
   // Autoplay effect
   useEffect(() => {
@@ -198,27 +142,27 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         video.muted = !shouldAutoplayWithSound;
         
         if (isActive) {
-          console.log('Attempting mobile autoplay:', { 
+          console.log('Attempting autoplay on Cloudinary video:', { 
             muted: video.muted, 
             hasUserInteracted, 
             shouldAutoplayWithSound,
             isMobile: isMobileDevice,
-            url: currentUrl
+            url: videoUrl
           });
           
           await video.play();
           setIsPlaying(true);
           
-          console.log('Mobile autoplay successful');
+          console.log('Cloudinary video autoplay successful');
         } else {
           video.pause();
           setIsPlaying(false);
         }
       } catch (error) {
-        console.error('Mobile autoplay failed:', {
+        console.error('Cloudinary video autoplay failed:', {
           error: error instanceof Error ? error.message : error,
           isMobile: isMobileDevice,
-          url: currentUrl,
+          url: videoUrl,
           hasUserInteracted,
           shouldAutoplayWithSound
         });
@@ -227,7 +171,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     };
 
     attemptAutoplay();
-  }, [isActive, hasError, isLoading, shouldAutoplayWithSound, hasUserInteracted, currentUrl, isMobileDevice]);
+  }, [isActive, hasError, isLoading, shouldAutoplayWithSound, hasUserInteracted, videoUrl, isMobileDevice]);
 
   const handleVideoClick = () => {
     markUserInteraction();
@@ -235,10 +179,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     const video = videoRef.current;
     if (!video) return;
 
-    console.log('Mobile video clicked:', { 
+    console.log('Cloudinary video clicked:', { 
       isPlaying, 
       isMobile: isMobileDevice,
-      url: currentUrl 
+      url: videoUrl 
     });
 
     if (isPlaying) {
@@ -248,9 +192,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       video.muted = !shouldAutoplayWithSound;
       video.play().then(() => {
         setIsPlaying(true);
-        console.log('Mobile manual play succeeded');
+        console.log('Cloudinary manual play succeeded');
       }).catch(error => {
-        console.error('Mobile manual play failed:', error);
+        console.error('Cloudinary manual play failed:', error);
       });
     }
   };
@@ -262,7 +206,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     const video = videoRef.current;
     if (video) {
       video.muted = !shouldAutoplayWithSound;
-      console.log('Mobile mute toggled:', { muted: video.muted, isMobile: isMobileDevice });
+      console.log('Audio toggled for Cloudinary video:', { muted: video.muted, isMobile: isMobileDevice });
     }
   };
 
@@ -277,17 +221,11 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     const video = videoRef.current;
     if (!video) return;
     
-    console.log('Mobile video retry initiated:', { 
-      currentUrl, 
-      retryCount, 
-      urlHistory,
+    console.log('Retrying Cloudinary video:', { 
+      videoUrl, 
       isMobile: isMobileDevice 
     });
     
-    // Reset to first URL and try again
-    setCurrentUrl(videoUrl);
-    setRetryCount(0);
-    setUrlHistory([]);
     setHasError(false);
     setIsLoading(true);
     setErrorDetails('');
@@ -322,19 +260,12 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     return baseAttributes;
   };
 
-  const getCurrentUrlType = () => {
-    if (currentUrl.includes('dl.dropboxusercontent.com')) return 'Direct';
-    if (currentUrl.includes('raw=1')) return 'Raw';
-    if (currentUrl.includes('dl=1')) return 'Download';
-    return 'Unknown';
-  };
-
   return (
     <div className="relative w-full h-screen bg-black overflow-hidden">
       {/* Video */}
       <video
         ref={videoRef}
-        src={currentUrl}
+        src={videoUrl}
         className="w-full h-full object-cover"
         onClick={handleVideoClick}
         {...getMobileVideoAttributes()}
@@ -350,7 +281,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             <Loader2 className="w-8 h-8 text-white animate-spin" />
             {isMobileDevice && (
               <p className="text-white text-xs mt-2 text-center">
-                Loading {getCurrentUrlType()}...
+                Loading from Cloudinary...
               </p>
             )}
           </div>
@@ -367,7 +298,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
               <p className="text-white/70 text-xs mb-2">{errorDetails}</p>
             )}
             <p className="text-white/50 text-xs mb-4">
-              URL: {getCurrentUrlType()} • Retry #{retryCount}
+              Cloudinary URL: {videoUrl}
             </p>
             <button
               onClick={retryVideo}
@@ -383,7 +314,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       {isMobileDevice && (
         <div className="absolute top-2 left-2 z-20 bg-black/70 rounded px-2 py-1">
           <p className="text-white text-xs">
-            📱 {isIOSDevice ? 'iOS' : isAndroidDevice ? 'Android' : 'Mobile'} • {getCurrentUrlType()}
+            📱 {isIOSDevice ? 'iOS' : isAndroidDevice ? 'Android' : 'Mobile'} • Cloudinary
           </p>
         </div>
       )}

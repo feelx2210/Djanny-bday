@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { VideoPlayer } from './VideoPlayer';
 import { useVideoLoader } from '../hooks/useVideoLoader';
@@ -137,7 +136,7 @@ export const DjannyTokFeed: React.FC = () => {
         <div className="text-center text-white">
           <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-lg font-medium">Loading birthday videos...</p>
-          <p className="text-sm opacity-75 mt-2">Testing mobile video formats</p>
+          <p className="text-sm opacity-75 mt-2">Using Cloudinary for reliable streaming</p>
         </div>
       </div>
     );
@@ -234,8 +233,6 @@ export const DjannyTokFeed: React.FC = () => {
               description={video.description}
               username={video.username}
               isActive={index === currentVideoIndex}
-              alternativeUrl={video.alternativeUrl}
-              directUrl={video.directUrl}
             />
           </div>
         ))}

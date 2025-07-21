@@ -1,6 +1,6 @@
 
 import React, { useRef, useEffect, useState } from 'react';
-import { Heart, Share, MessageCircle, MoreHorizontal, Play, Loader2, AlertCircle, Wifi } from 'lucide-react';
+import { Heart, Share, MessageCircle, MoreHorizontal, Play, Loader2, AlertCircle, Wifi, Volume2, VolumeX } from 'lucide-react';
 
 interface VideoPlayerProps {
   videoUrl: string;
@@ -29,6 +29,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [currentUrl, setCurrentUrl] = useState(videoUrl);
   const [networkQuality, setNetworkQuality] = useState<'slow' | 'fast' | 'unknown'>('unknown');
   const [retryCount, setRetryCount] = useState(0);
+  const [isMuted, setIsMuted] = useState(false);
 
   // Enhanced mobile detection and debugging
   const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -192,21 +193,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     if (!video || hasError) return;
 
     if (isActive && !isLoading) {
-      const playVideo = async () => {
-        try {
-          console.log('Attempting autoplay:', { isMobile, hasInteracted, currentUrl });
-          await video.play();
-          setIsPlaying(true);
-          setNeedsManualPlay(false);
-          console.log('Video started playing automatically');
-        } catch (error) {
-          console.log('Autoplay failed, requiring manual interaction:', { error, isMobile, userAgent });
-          setNeedsManualPlay(true);
-          setIsPlaying(false);
-        }
-      };
-
-      playVideo();
+      // Videos with audio require user interaction to play
+      setNeedsManualPlay(true);
+      setIsPlaying(false);
+      console.log('Video ready for manual play with audio');
     } else {
       video.pause();
       setIsPlaying(false);
@@ -218,12 +208,13 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     if (!video) return;
 
     try {
-      console.log('Manual play attempt:', { isMobile, currentUrl, userAgent });
+      console.log('Manual play attempt with audio:', { isMobile, currentUrl, userAgent });
       setHasInteracted(true);
+      video.muted = isMuted;
       await video.play();
       setIsPlaying(true);
       setNeedsManualPlay(false);
-      console.log('Video started playing manually');
+      console.log('Video started playing manually with audio');
     } catch (error) {
       console.error('Manual play failed:', { error, isMobile, currentUrl, userAgent });
       setHasError(true);
@@ -242,15 +233,26 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         console.log('Video paused by user');
       } else {
         setHasInteracted(true);
+        video.muted = isMuted;
         await video.play();
         setIsPlaying(true);
         setNeedsManualPlay(false);
-        console.log('Video played by user toggle');
+        console.log('Video played by user toggle with audio');
       }
     } catch (error) {
       console.error('Toggle play/pause failed:', { error, isMobile, currentUrl });
       setNeedsManualPlay(true);
     }
+  };
+
+  const toggleMute = () => {
+    const video = videoRef.current;
+    if (!video) return;
+    
+    const newMutedState = !isMuted;
+    setIsMuted(newMutedState);
+    video.muted = newMutedState;
+    console.log('Video mute toggled:', { muted: newMutedState });
   };
 
   const handleLike = () => {
@@ -288,7 +290,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const getVideoAttributes = () => {
     const baseAttributes = {
       loop: true,
-      muted: true,
+      muted: false, // Enable audio
       playsInline: true,
       'webkit-playsinline': 'true' as const
     };
@@ -364,7 +366,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         </div>
       )}
 
-      {/* Manual play overlay for mobile */}
+      {/* Manual play overlay for videos with audio */}
       {needsManualPlay && !hasError && (
         <div 
           className="absolute inset-0 flex items-center justify-center cursor-pointer"
@@ -375,8 +377,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           </div>
           <div className="absolute bottom-32 left-1/2 transform -translate-x-1/2">
             <div className="bg-black/80 rounded-lg px-4 py-2 backdrop-blur-sm">
-              <p className="text-white text-sm">
-                {isMobile ? `Tap to play (${isIOS ? 'iOS' : 'Mobile'})` : 'Tap to play video'}
+              <p className="text-white text-sm flex items-center">
+                <Volume2 className="w-4 h-4 mr-2" />
+                Tap to play with sound
               </p>
             </div>
           </div>
@@ -397,6 +400,23 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
       {/* Right side actions */}
       <div className="absolute right-3 bottom-20 flex flex-col items-center space-y-6">
+        {/* Mute/Unmute button */}
+        <button
+          onClick={toggleMute}
+          className="flex flex-col items-center group"
+        >
+          <div className="w-12 h-12 bg-secondary/80 rounded-full flex items-center justify-center backdrop-blur-sm group-active:scale-95 transition-transform">
+            {isMuted ? (
+              <VolumeX className="w-6 h-6 text-white" />
+            ) : (
+              <Volume2 className="w-6 h-6 text-white" />
+            )}
+          </div>
+          <span className="text-white text-xs mt-1 font-medium">
+            {isMuted ? 'Unmute' : 'Mute'}
+          </span>
+        </button>
+
         {/* Like button */}
         <button
           onClick={handleLike}
@@ -442,6 +462,12 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           <span>🎈</span>
           <span>🥳</span>
           <span>✨</span>
+        </div>
+
+        {/* Audio indicator */}
+        <div className="mt-2 flex items-center text-xs text-white/60">
+          <Volume2 className="w-3 h-3 mr-1" />
+          <span>Tap video to hear birthday message</span>
         </div>
 
         {/* Debug info for mobile (only in development) */}

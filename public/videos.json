@@ -3,35 +3,35 @@
   "videos": [
     {
       "id": 1,
-      "filename": "https://e.pcloud.link/publink/show?code=XZhq0EZerYE28UY9I8h0oll3Dw6LuK4sXC7",
+      "filename": "birthday-video-1.mp4",
       "username": "family_wishes",
       "description": "🎉 Happy Birthday Djanny! Hope your special day is as amazing as you are! Can't wait to celebrate with you! 🎂✨",
-      "videoUrl": "https://u.pcloud.link/publink/show?code=YOUR_PCLOUD_CODE_1&filename=sample-birthday-1.mp4"
+      "videoUrl": "https://e.pcloud.link/publink/show?code=XZhq0EZerYE28UY9I8h0oll3Dw6LuK4sXC7"
     },
     {
       "id": 2,
-      "filename": "https://e.pcloud.link/publink/show?code=XZuq0EZS3o7Oy7taIzXNkuoR1HPeHfdDjPk",
+      "filename": "birthday-video-2.mp4",
       "username": "college_friends",
       "description": "🥳 From all of us to you - may this new year of life bring you endless joy, laughter, and all your heart desires! 🎈",
-      "videoUrl": "https://u.pcloud.link/publink/show?code=YOUR_PCLOUD_CODE_2&filename=sample-birthday-2.mp4"
+      "videoUrl": "https://e.pcloud.link/publink/show?code=XZuq0EZS3o7Oy7taIzXNkuoR1HPeHfdDjPk"
     },
     {
       "id": 3,
-      "filename": "https://e.pcloud.link/publink/show?code=XZ2q0EZpVEBcR97RAQM48e6DMkcomXET8p7",
+      "filename": "birthday-video-3.mp4",
       "username": "work_colleagues",
       "description": "🎂 Remember when we used to dream about growing up? Well, here we are! Happy Birthday to my forever friend! 💖",
-      "videoUrl": "https://u.pcloud.link/publink/show?code=YOUR_PCLOUD_CODE_3&filename=sample-birthday-3.mp4"
+      "videoUrl": "https://e.pcloud.link/publink/show?code=XZ2q0EZpVEBcR97RAQM48e6DMkcomXET8p7"
     }
   ],
   "_instructions": {
     "how_to_get_pcloud_urls": [
       "1. Upload your video to pCloud",
       "2. Right-click the video file and select 'Get public link'",
-      "3. Copy the sharing URL that looks like: https://u.pcloud.link/publink/show?code=XYZ&filename=your-video.mp4",
-      "4. Replace the YOUR_PCLOUD_CODE_X placeholders above with your actual codes",
-      "5. Update the filename field to match your actual video filename"
+      "3. Copy the sharing URL that looks like: https://e.pcloud.link/publink/show?code=XYZ",
+      "4. Use this URL directly in the videoUrl field above",
+      "5. The filename field is now just for reference/fallback"
     ],
     "for_local_development": "If videoUrl is not provided, the app will fallback to ./videos/filename for local development",
-    "github_pages_deployment": "Make sure your GitHub Pages is enabled in your repository settings under Pages section"
+    "github_pages_deployment": "Make sure your GitHub Pages is enabled and using GitHub Actions for deployment"
   }
 }

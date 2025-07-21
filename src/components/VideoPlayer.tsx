@@ -23,34 +23,59 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [hasError, setHasError] = useState(false);
   const [needsManualPlay, setNeedsManualPlay] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
+  const [errorDetails, setErrorDetails] = useState<string>('');
 
-  // Detect if we're on mobile
+  // Enhanced mobile detection
   const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+  const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
 
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
     const handleLoadStart = () => {
-      console.log('Video load started:', videoUrl);
+      console.log('Video load started:', videoUrl, 'Mobile:', isMobile);
       setIsLoading(true);
       setHasError(false);
+      setErrorDetails('');
     };
 
     const handleCanPlay = () => {
-      console.log('Video can play:', videoUrl);
+      console.log('Video can play:', videoUrl, 'Mobile:', isMobile);
       setIsLoading(false);
       setHasError(false);
     };
 
     const handleError = (e: Event) => {
-      console.error('Video error:', e, videoUrl);
+      const target = e.target as HTMLVideoElement;
+      const error = target.error;
+      let errorMessage = 'Unknown error';
+      
+      if (error) {
+        switch (error.code) {
+          case error.MEDIA_ERR_ABORTED:
+            errorMessage = 'Video playback aborted';
+            break;
+          case error.MEDIA_ERR_NETWORK:
+            errorMessage = 'Network error while loading video';
+            break;
+          case error.MEDIA_ERR_DECODE:
+            errorMessage = 'Error decoding video';
+            break;
+          case error.MEDIA_ERR_SRC_NOT_SUPPORTED:
+            errorMessage = 'Video format not supported';
+            break;
+        }
+      }
+
+      console.error('Video error:', errorMessage, 'Code:', error?.code, 'URL:', videoUrl, 'Mobile:', isMobile);
       setIsLoading(false);
       setHasError(true);
+      setErrorDetails(errorMessage);
     };
 
     const handleLoadedMetadata = () => {
-      console.log('Video metadata loaded:', videoUrl);
+      console.log('Video metadata loaded:', videoUrl, 'Duration:', video.duration, 'Mobile:', isMobile);
       setIsLoading(false);
     };
 
@@ -65,7 +90,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       video.removeEventListener('error', handleError);
       video.removeEventListener('loadedmetadata', handleLoadedMetadata);
     };
-  }, [videoUrl]);
+  }, [videoUrl, isMobile]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -105,6 +130,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     } catch (error) {
       console.error('Manual play failed:', error);
       setHasError(true);
+      setErrorDetails('Failed to start video playback');
     }
   };
 
@@ -137,8 +163,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     const video = videoRef.current;
     if (!video) return;
     
+    console.log('Retrying video load:', videoUrl);
     setHasError(false);
     setIsLoading(true);
+    setErrorDetails('');
     video.load();
   };
 
@@ -154,7 +182,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         playsInline
         webkit-playsinline="true"
         preload={isMobile ? "metadata" : "auto"}
-        crossOrigin="anonymous"
         onClick={togglePlayPause}
       />
 
@@ -173,9 +200,12 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       {/* Error state */}
       {hasError && (
         <div className="absolute inset-0 flex items-center justify-center">
-          <div className="bg-black/80 rounded-lg p-6 mx-4 text-center backdrop-blur-sm">
+          <div className="bg-black/80 rounded-lg p-6 mx-4 text-center backdrop-blur-sm max-w-sm">
             <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
-            <p className="text-white text-sm mb-4">Failed to load video</p>
+            <p className="text-white text-sm mb-2">Failed to load video</p>
+            {errorDetails && (
+              <p className="text-white/70 text-xs mb-4">{errorDetails}</p>
+            )}
             <button
               onClick={retryVideo}
               className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm transition-colors"

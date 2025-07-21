@@ -6,12 +6,13 @@ export interface VideoData {
   filename: string;
   username: string;
   description: string;
-  videoUrl?: string; // Optional direct URL for pCloud or other external sources
+  videoUrl?: string;
 }
 
 export interface VideoWithUrl extends VideoData {
   videoUrl: string;
-  alternativeUrl?: string; // Add alternative URL for mobile fallback
+  alternativeUrl?: string;
+  directUrl?: string; // For direct download without query params
 }
 
 export const useVideoLoader = () => {
@@ -20,33 +21,65 @@ export const useVideoLoader = () => {
   const [error, setError] = useState<string | null>(null);
   const [lastRefresh, setLastRefresh] = useState(Date.now());
 
-  // Mobile detection and debugging
+  // Enhanced mobile detection
   const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
-  const userAgent = navigator.userAgent;
+  const isAndroid = /Android/i.test(navigator.userAgent);
 
-  const convertDropboxUrl = (originalUrl: string) => {
-    if (originalUrl.includes('dropbox.com') && originalUrl.includes('dl=1')) {
-      // For mobile, try raw=1 format first, but also provide dl=1 as fallback
-      const rawUrl = originalUrl.replace('dl=1', 'raw=1');
-      
-      console.log('Dropbox URL conversion for mobile:', { 
-        original: originalUrl, 
-        raw: rawUrl, 
-        isMobile, 
+  const createDropboxUrls = (originalUrl: string) => {
+    if (!originalUrl.includes('dropbox.com')) {
+      return { primary: originalUrl, fallback: originalUrl, direct: originalUrl };
+    }
+
+    // Extract the file ID and key from Dropbox URL
+    const fileIdMatch = originalUrl.match(/\/scl\/fi\/([^\/]+)/);
+    const rkeyMatch = originalUrl.match(/rlkey=([^&]+)/);
+    const stMatch = originalUrl.match(/st=([^&]+)/);
+
+    if (fileIdMatch && rkeyMatch) {
+      const fileId = fileIdMatch[1];
+      const rkey = rkeyMatch[1];
+      const st = stMatch ? stMatch[1] : '';
+
+      // Create different URL formats
+      const baseParams = `rlkey=${rkey}${st ? `&st=${st}` : ''}`;
+      const dlUrl = `https://www.dropbox.com/scl/fi/${fileId}?${baseParams}&dl=1`;
+      const rawUrl = `https://www.dropbox.com/scl/fi/${fileId}?${baseParams}&raw=1`;
+      const directUrl = `https://dl.dropboxusercontent.com/scl/fi/${fileId}?${baseParams}`;
+
+      console.log('Created Dropbox URL variants:', {
+        original: originalUrl,
+        dl: dlUrl,
+        raw: rawUrl,
+        direct: directUrl,
+        isMobile,
         isIOS,
-        userAgent 
+        isAndroid
       });
-      
-      // On mobile, prefer raw=1 for direct video streaming
+
+      // For mobile, prefer direct download URLs
       if (isMobile) {
-        return { primary: rawUrl, fallback: originalUrl };
+        return { 
+          primary: directUrl, 
+          fallback: rawUrl, 
+          direct: dlUrl 
+        };
       } else {
-        // On desktop, dl=1 might work better
-        return { primary: originalUrl, fallback: rawUrl };
+        return { 
+          primary: dlUrl, 
+          fallback: rawUrl, 
+          direct: directUrl 
+        };
       }
     }
-    return { primary: originalUrl, fallback: originalUrl };
+
+    // Fallback to simple parameter replacement
+    const rawUrl = originalUrl.replace('dl=1', 'raw=1');
+    return { 
+      primary: originalUrl, 
+      fallback: rawUrl, 
+      direct: originalUrl.replace('dropbox.com', 'dl.dropboxusercontent.com') 
+    };
   };
 
   const loadVideos = async () => {
@@ -54,14 +87,14 @@ export const useVideoLoader = () => {
       setLoading(true);
       setError(null);
       
-      console.log('Loading videos - Enhanced mobile detection:', { 
+      console.log('Loading videos - Mobile platform:', { 
         isMobile, 
         isIOS, 
-        userAgent,
+        isAndroid,
+        userAgent: navigator.userAgent,
         timestamp: new Date().toISOString()
       });
       
-      // Use the correct base URL from Vite configuration
       const baseUrl = import.meta.env.BASE_URL;
       const videosJsonUrl = `${baseUrl}videos.json`;
       console.log('Fetching videos from:', videosJsonUrl);
@@ -74,44 +107,48 @@ export const useVideoLoader = () => {
       const data = await response.json();
       const videosWithUrls: VideoWithUrl[] = data.videos.map((video: VideoData) => {
         const originalUrl = video.videoUrl || `${baseUrl}videos/${video.filename}`;
-        const { primary, fallback } = convertDropboxUrl(originalUrl);
+        const { primary, fallback, direct } = createDropboxUrls(originalUrl);
         
-        console.log('Processing video URL:', {
+        console.log('Processing video for mobile:', {
           id: video.id,
           filename: video.filename,
           originalUrl,
           primaryUrl: primary,
           fallbackUrl: fallback,
+          directUrl: direct,
           isMobile,
-          hasFallback: fallback !== primary
+          platform: isIOS ? 'iOS' : isAndroid ? 'Android' : 'Desktop'
         });
         
         return {
           ...video,
           videoUrl: primary,
-          alternativeUrl: fallback !== primary ? fallback : undefined
+          alternativeUrl: fallback !== primary ? fallback : undefined,
+          directUrl: direct !== primary ? direct : undefined
         };
       });
       
       setVideos(videosWithUrls);
-      console.log(`Successfully loaded ${videosWithUrls.length} videos from videos.json`, { 
+      console.log(`Successfully loaded ${videosWithUrls.length} videos with mobile optimizations`, { 
         isMobile, 
         isIOS,
+        isAndroid,
         videosWithUrls: videosWithUrls.map(v => ({
           id: v.id,
           primaryUrl: v.videoUrl,
-          alternativeUrl: v.alternativeUrl
+          alternativeUrl: v.alternativeUrl,
+          directUrl: v.directUrl
         }))
       });
     } catch (err) {
-      console.error('Error loading videos on mobile:', err, { 
+      console.error('Error loading videos on mobile platform:', err, { 
         isMobile, 
         isIOS, 
-        userAgent,
+        isAndroid,
+        userAgent: navigator.userAgent,
         timestamp: new Date().toISOString()
       });
       setError(`Failed to load videos: ${err instanceof Error ? err.message : 'Unknown error'}`);
-      // Fallback to empty array if videos.json doesn't exist yet
       setVideos([]);
     } finally {
       setLoading(false);
@@ -127,7 +164,7 @@ export const useVideoLoader = () => {
     loadVideos();
   }, [lastRefresh]);
 
-  // Auto-refresh every 5 minutes to check for new videos
+  // Auto-refresh every 5 minutes
   useEffect(() => {
     const interval = setInterval(() => {
       refreshVideos();

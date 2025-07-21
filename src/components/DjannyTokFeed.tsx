@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { VideoPlayer } from './VideoPlayer';
 import { useVideoLoader } from '../hooks/useVideoLoader';
@@ -22,7 +23,7 @@ export const DjannyTokFeed: React.FC = () => {
     const handleTouchEnd = (e: TouchEvent) => {
       if (isScrolling || videos.length === 0) return;
       
-      markUserInteraction(); // Mark interaction on any swipe
+      markUserInteraction();
       
       touchEndY = e.changedTouches[0].screenY;
       const deltaY = touchStartY - touchEndY;
@@ -44,7 +45,7 @@ export const DjannyTokFeed: React.FC = () => {
       if (isScrolling || videos.length === 0) return;
       
       e.preventDefault();
-      markUserInteraction(); // Mark interaction on scroll
+      markUserInteraction();
       setIsScrolling(true);
       
       if (e.deltaY > 0) {
@@ -73,7 +74,7 @@ export const DjannyTokFeed: React.FC = () => {
       if (isScrolling || videos.length === 0) return;
       
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-        markUserInteraction(); // Mark interaction on keyboard navigation
+        markUserInteraction();
         setIsScrolling(true);
         
         if (e.key === 'ArrowDown') {
@@ -136,7 +137,7 @@ export const DjannyTokFeed: React.FC = () => {
         <div className="text-center text-white">
           <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-lg font-medium">Loading birthday videos...</p>
-          <p className="text-sm opacity-75 mt-2">Discovering videos from pCloud</p>
+          <p className="text-sm opacity-75 mt-2">Testing mobile video formats</p>
         </div>
       </div>
     );
@@ -168,7 +169,7 @@ export const DjannyTokFeed: React.FC = () => {
         <div className="text-center text-white px-6">
           <Gift className="w-16 h-16 text-birthday-gold mx-auto mb-4" />
           <h2 className="text-xl font-semibold mb-2">No Birthday Videos Yet</h2>
-          <p className="text-sm opacity-75 mb-6">Videos will appear here once they're uploaded to the videos folder</p>
+          <p className="text-sm opacity-75 mb-6">Videos will appear here once they're uploaded</p>
           <button
             onClick={refreshVideos}
             className="bg-primary hover:bg-primary/90 text-white px-6 py-2 rounded-full font-medium transition-colors flex items-center mx-auto"
@@ -234,12 +235,13 @@ export const DjannyTokFeed: React.FC = () => {
               username={video.username}
               isActive={index === currentVideoIndex}
               alternativeUrl={video.alternativeUrl}
+              directUrl={video.directUrl}
             />
           </div>
         ))}
       </div>
 
-      {/* Progress indicator with endless loop visualization */}
+      {/* Progress indicator */}
       <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex flex-col space-y-2 z-10">
         {videos.map((_, index) => (
           <div
@@ -253,7 +255,7 @@ export const DjannyTokFeed: React.FC = () => {
         ))}
       </div>
 
-      {/* Video counter and endless loop indicator */}
+      {/* Video counter */}
       <div className="absolute top-4 left-4 z-10 bg-black/50 backdrop-blur-sm rounded-lg px-3 py-2">
         <p className="text-white text-sm font-medium">
           {currentVideoIndex + 1} of {videos.length}
@@ -261,7 +263,7 @@ export const DjannyTokFeed: React.FC = () => {
         <p className="text-white/60 text-xs">∞ endless loop</p>
       </div>
 
-      {/* Swipe instruction (shows on first video) */}
+      {/* Swipe instruction */}
       {currentVideoIndex === 0 && videos.length > 1 && (
         <div className="absolute bottom-32 left-1/2 transform -translate-x-1/2 z-10 animate-fade-in">
           <div className="bg-black/50 backdrop-blur-sm rounded-full px-4 py-2">

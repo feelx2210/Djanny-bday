@@ -24,12 +24,12 @@
     }
   ],
   "_instructions": {
-    "how_to_get_pcloud_urls": [
-      "1. Upload your video to pCloud",
-      "2. Right-click the video file and select 'Get public link'",
-      "3. Copy the sharing URL that looks like: https://e.pcloud.link/publink/show?code=XYZ",
-      "4. Use this URL directly in the videoUrl field above",
-      "5. The filename field is now just for reference/fallback"
+    "how_to_get_dropbox_urls": [
+      "1. Upload your video to Dropbox",
+      "2. Right-click the video file and select 'Share'",
+      "3. Click 'Create link' to get a sharing URL",
+      "4. Modify the URL to end with '&dl=1' instead of '&dl=0' to force direct download",
+      "5. Use this modified URL in the videoUrl field above"
     ],
     "for_local_development": "If videoUrl is not provided, the app will fallback to ./videos/filename for local development",
     "github_pages_deployment": "Make sure your GitHub Pages is enabled and using GitHub Actions for deployment"

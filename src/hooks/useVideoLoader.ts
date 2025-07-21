@@ -42,14 +42,19 @@ export const useVideoLoader = () => {
       
       console.log('Loading videos - Mobile detection:', { isMobile, isIOS, userAgent });
       
-      const response = await fetch('./videos.json');
+      // Use the correct base URL from Vite configuration
+      const baseUrl = import.meta.env.BASE_URL;
+      const videosJsonUrl = `${baseUrl}videos.json`;
+      console.log('Fetching videos from:', videosJsonUrl);
+      
+      const response = await fetch(videosJsonUrl);
       if (!response.ok) {
-        throw new Error('Failed to load video metadata');
+        throw new Error(`Failed to load video metadata (${response.status}): ${response.statusText}`);
       }
       
       const data = await response.json();
       const videosWithUrls: VideoWithUrl[] = data.videos.map((video: VideoData) => {
-        const originalUrl = video.videoUrl || `./videos/${video.filename}`;
+        const originalUrl = video.videoUrl || `${baseUrl}videos/${video.filename}`;
         const { primary, fallback } = convertDropboxUrl(originalUrl);
         
         return {
@@ -63,7 +68,7 @@ export const useVideoLoader = () => {
       console.log(`Loaded ${videosWithUrls.length} videos from videos.json`, { isMobile, videosWithUrls });
     } catch (err) {
       console.error('Error loading videos:', err, { isMobile, userAgent });
-      setError('Failed to load videos. Please check your connection.');
+      setError(`Failed to load videos: ${err instanceof Error ? err.message : 'Unknown error'}`);
       // Fallback to empty array if videos.json doesn't exist yet
       setVideos([]);
     } finally {

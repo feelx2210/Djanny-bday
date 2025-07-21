@@ -1,10 +1,12 @@
 import React, { useState, useEffect } from 'react';
 import { VideoPlayer } from './VideoPlayer';
 import { useVideoLoader } from '../hooks/useVideoLoader';
-import { RefreshCw, AlertCircle, Gift } from 'lucide-react';
+import { useAudio } from '../contexts/AudioContext';
+import { RefreshCw, AlertCircle, Gift, Volume2, VolumeX } from 'lucide-react';
 
 export const DjannyTokFeed: React.FC = () => {
   const { videos, loading, error, refreshVideos } = useVideoLoader();
+  const { hasUserInteracted, markUserInteraction, shouldAutoplayWithSound } = useAudio();
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const [isScrolling, setIsScrolling] = useState(false);
   const [showRefreshHint, setShowRefreshHint] = useState(false);
@@ -20,18 +22,17 @@ export const DjannyTokFeed: React.FC = () => {
     const handleTouchEnd = (e: TouchEvent) => {
       if (isScrolling || videos.length === 0) return;
       
+      markUserInteraction(); // Mark interaction on any swipe
+      
       touchEndY = e.changedTouches[0].screenY;
       const deltaY = touchStartY - touchEndY;
       
-      // Threshold for swipe detection
       if (Math.abs(deltaY) > 50) {
         setIsScrolling(true);
         
         if (deltaY > 0) {
-          // Swipe up - next video (with endless loop)
           setCurrentVideoIndex(prev => (prev + 1) % videos.length);
         } else {
-          // Swipe down - previous video (with endless loop)
           setCurrentVideoIndex(prev => (prev - 1 + videos.length) % videos.length);
         }
         
@@ -43,20 +44,18 @@ export const DjannyTokFeed: React.FC = () => {
       if (isScrolling || videos.length === 0) return;
       
       e.preventDefault();
+      markUserInteraction(); // Mark interaction on scroll
       setIsScrolling(true);
       
       if (e.deltaY > 0) {
-        // Scroll down - next video (with endless loop)
         setCurrentVideoIndex(prev => (prev + 1) % videos.length);
       } else {
-        // Scroll up - previous video (with endless loop)
         setCurrentVideoIndex(prev => (prev - 1 + videos.length) % videos.length);
       }
       
       setTimeout(() => setIsScrolling(false), 500);
     };
 
-    // Add event listeners
     window.addEventListener('touchstart', handleTouchStart, { passive: true });
     window.addEventListener('touchend', handleTouchEnd, { passive: true });
     window.addEventListener('wheel', handleWheel, { passive: false });
@@ -66,27 +65,30 @@ export const DjannyTokFeed: React.FC = () => {
       window.removeEventListener('touchend', handleTouchEnd);
       window.removeEventListener('wheel', handleWheel);
     };
-  }, [currentVideoIndex, isScrolling, videos.length]);
+  }, [currentVideoIndex, isScrolling, videos.length, markUserInteraction]);
 
-  // Keyboard navigation with endless loop
+  // Keyboard navigation
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (isScrolling || videos.length === 0) return;
       
-      if (e.key === 'ArrowDown') {
+      if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+        markUserInteraction(); // Mark interaction on keyboard navigation
         setIsScrolling(true);
-        setCurrentVideoIndex(prev => (prev + 1) % videos.length);
-        setTimeout(() => setIsScrolling(false), 500);
-      } else if (e.key === 'ArrowUp') {
-        setIsScrolling(true);
-        setCurrentVideoIndex(prev => (prev - 1 + videos.length) % videos.length);
+        
+        if (e.key === 'ArrowDown') {
+          setCurrentVideoIndex(prev => (prev + 1) % videos.length);
+        } else {
+          setCurrentVideoIndex(prev => (prev - 1 + videos.length) % videos.length);
+        }
+        
         setTimeout(() => setIsScrolling(false), 500);
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentVideoIndex, isScrolling, videos.length]);
+  }, [currentVideoIndex, isScrolling, videos.length, markUserInteraction]);
 
   // Pull-to-refresh detection
   useEffect(() => {
@@ -188,6 +190,31 @@ export const DjannyTokFeed: React.FC = () => {
             <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
             Release to refresh
           </p>
+        </div>
+      )}
+
+      {/* First-time audio hint */}
+      {!hasUserInteracted && currentVideoIndex === 0 && videos.length > 0 && (
+        <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-20 animate-fade-in">
+          <div className="bg-black/80 backdrop-blur-sm rounded-lg px-4 py-3">
+            <p className="text-white text-sm flex items-center">
+              <VolumeX className="w-4 h-4 mr-2" />
+              Swipe up to enable sound
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* Global audio status indicator */}
+      {hasUserInteracted && (
+        <div className="absolute top-4 right-4 z-20">
+          <div className="bg-black/50 backdrop-blur-sm rounded-full p-2">
+            {shouldAutoplayWithSound ? (
+              <Volume2 className="w-4 h-4 text-primary" />
+            ) : (
+              <VolumeX className="w-4 h-4 text-white/60" />
+            )}
+          </div>
         </div>
       )}
 

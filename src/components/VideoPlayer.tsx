@@ -58,6 +58,28 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       setErrorDetails('');
     };
 
+    const handleWaiting = () => {
+      console.log('Cloudinary video waiting/buffering:', {
+        url: videoUrl,
+        isMobile: isMobileDevice,
+        networkState: video.networkState,
+        readyState: video.readyState
+      });
+    };
+
+    const handleStalled = () => {
+      console.error('Cloudinary video stalled:', {
+        url: videoUrl,
+        isMobile: isMobileDevice,
+        networkState: video.networkState,
+        readyState: video.readyState
+      });
+      
+      if (isMobileDevice) {
+        setErrorDetails('Video stalled on mobile - checking connection...');
+      }
+    };
+
     const handleCanPlay = () => {
       console.log('Cloudinary video can play:', {
         url: videoUrl,
@@ -123,12 +145,33 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     video.addEventListener('canplay', handleCanPlay);
     video.addEventListener('error', handleError);
     video.addEventListener('loadedmetadata', handleLoadedMetadata);
+    video.addEventListener('waiting', handleWaiting);
+    video.addEventListener('stalled', handleStalled);
+
+    // Mobile-specific timeout for loading
+    let loadTimeout: NodeJS.Timeout;
+    if (isMobileDevice) {
+      loadTimeout = setTimeout(() => {
+        if (isLoading && !hasError) {
+          console.error('Mobile video load timeout after 15s:', { url: videoUrl });
+          setErrorDetails('Video loading timeout on mobile device');
+          setHasError(true);
+          setIsLoading(false);
+        }
+      }, 15000);
+    }
 
     return () => {
       video.removeEventListener('loadstart', handleLoadStart);
       video.removeEventListener('canplay', handleCanPlay);
       video.removeEventListener('error', handleError);
       video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      video.removeEventListener('waiting', handleWaiting);
+      video.removeEventListener('stalled', handleStalled);
+      
+      if (loadTimeout) {
+        clearTimeout(loadTimeout);
+      }
     };
   }, [videoUrl, isMobileDevice, isIOSDevice, isAndroidDevice]);
 

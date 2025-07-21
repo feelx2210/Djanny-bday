@@ -1,5 +1,6 @@
+
 import React, { useRef, useEffect, useState } from 'react';
-import { Heart, Share, MessageCircle, MoreHorizontal } from 'lucide-react';
+import { Heart, Share, MessageCircle, MoreHorizontal, Play, Loader2, AlertCircle } from 'lucide-react';
 
 interface VideoPlayerProps {
   videoUrl: string;
@@ -18,34 +19,127 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [isPlaying, setIsPlaying] = useState(false);
   const [liked, setLiked] = useState(false);
   const [likes, setLikes] = useState(Math.floor(Math.random() * 1000) + 50);
+  const [isLoading, setIsLoading] = useState(true);
+  const [hasError, setHasError] = useState(false);
+  const [needsManualPlay, setNeedsManualPlay] = useState(false);
+  const [hasInteracted, setHasInteracted] = useState(false);
+
+  // Detect if we're on mobile
+  const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 
   useEffect(() => {
-    if (videoRef.current) {
-      if (isActive) {
-        videoRef.current.play();
-        setIsPlaying(true);
-      } else {
-        videoRef.current.pause();
-        setIsPlaying(false);
-      }
-    }
-  }, [isActive]);
+    const video = videoRef.current;
+    if (!video) return;
 
-  const togglePlayPause = () => {
-    if (videoRef.current) {
+    const handleLoadStart = () => {
+      console.log('Video load started:', videoUrl);
+      setIsLoading(true);
+      setHasError(false);
+    };
+
+    const handleCanPlay = () => {
+      console.log('Video can play:', videoUrl);
+      setIsLoading(false);
+      setHasError(false);
+    };
+
+    const handleError = (e: Event) => {
+      console.error('Video error:', e, videoUrl);
+      setIsLoading(false);
+      setHasError(true);
+    };
+
+    const handleLoadedMetadata = () => {
+      console.log('Video metadata loaded:', videoUrl);
+      setIsLoading(false);
+    };
+
+    video.addEventListener('loadstart', handleLoadStart);
+    video.addEventListener('canplay', handleCanPlay);
+    video.addEventListener('error', handleError);
+    video.addEventListener('loadedmetadata', handleLoadedMetadata);
+
+    return () => {
+      video.removeEventListener('loadstart', handleLoadStart);
+      video.removeEventListener('canplay', handleCanPlay);
+      video.removeEventListener('error', handleError);
+      video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+    };
+  }, [videoUrl]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || hasError) return;
+
+    if (isActive && !isLoading) {
+      const playVideo = async () => {
+        try {
+          await video.play();
+          setIsPlaying(true);
+          setNeedsManualPlay(false);
+          console.log('Video started playing automatically');
+        } catch (error) {
+          console.log('Autoplay failed, requiring manual interaction:', error);
+          setNeedsManualPlay(true);
+          setIsPlaying(false);
+        }
+      };
+
+      playVideo();
+    } else {
+      video.pause();
+      setIsPlaying(false);
+    }
+  }, [isActive, isLoading, hasError]);
+
+  const handleManualPlay = async () => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    try {
+      setHasInteracted(true);
+      await video.play();
+      setIsPlaying(true);
+      setNeedsManualPlay(false);
+      console.log('Video started playing manually');
+    } catch (error) {
+      console.error('Manual play failed:', error);
+      setHasError(true);
+    }
+  };
+
+  const togglePlayPause = async () => {
+    const video = videoRef.current;
+    if (!video || hasError) return;
+
+    try {
       if (isPlaying) {
-        videoRef.current.pause();
+        video.pause();
         setIsPlaying(false);
       } else {
-        videoRef.current.play();
+        setHasInteracted(true);
+        await video.play();
         setIsPlaying(true);
+        setNeedsManualPlay(false);
       }
+    } catch (error) {
+      console.error('Toggle play/pause failed:', error);
+      setNeedsManualPlay(true);
     }
   };
 
   const handleLike = () => {
     setLiked(!liked);
     setLikes(prev => liked ? prev - 1 : prev + 1);
+  };
+
+  const retryVideo = () => {
+    const video = videoRef.current;
+    if (!video) return;
+    
+    setHasError(false);
+    setIsLoading(true);
+    video.load();
   };
 
   return (
@@ -58,14 +152,59 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         loop
         muted
         playsInline
+        webkit-playsinline="true"
+        preload={isMobile ? "metadata" : "auto"}
+        crossOrigin="anonymous"
         onClick={togglePlayPause}
       />
 
       {/* Gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
 
+      {/* Loading state */}
+      {isLoading && !hasError && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="bg-black/50 rounded-full p-4 backdrop-blur-sm">
+            <Loader2 className="w-8 h-8 text-white animate-spin" />
+          </div>
+        </div>
+      )}
+
+      {/* Error state */}
+      {hasError && (
+        <div className="absolute inset-0 flex items-center justify-center">
+          <div className="bg-black/80 rounded-lg p-6 mx-4 text-center backdrop-blur-sm">
+            <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
+            <p className="text-white text-sm mb-4">Failed to load video</p>
+            <button
+              onClick={retryVideo}
+              className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm transition-colors"
+            >
+              Retry
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Manual play overlay for mobile */}
+      {needsManualPlay && !hasError && (
+        <div 
+          className="absolute inset-0 flex items-center justify-center cursor-pointer"
+          onClick={handleManualPlay}
+        >
+          <div className="bg-black/50 rounded-full p-6 backdrop-blur-sm">
+            <Play className="w-12 h-12 text-white fill-white" />
+          </div>
+          <div className="absolute bottom-32 left-1/2 transform -translate-x-1/2">
+            <div className="bg-black/80 rounded-lg px-4 py-2 backdrop-blur-sm">
+              <p className="text-white text-sm">Tap to play video</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Play/Pause overlay */}
-      {!isPlaying && (
+      {!isPlaying && !needsManualPlay && !isLoading && !hasError && (
         <div 
           className="absolute inset-0 flex items-center justify-center cursor-pointer"
           onClick={togglePlayPause}

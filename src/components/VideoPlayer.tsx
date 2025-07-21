@@ -1,19 +1,21 @@
 
 import React, { useRef, useEffect, useState } from 'react';
-import { Heart, Share, MessageCircle, MoreHorizontal, Play, Loader2, AlertCircle } from 'lucide-react';
+import { Heart, Share, MessageCircle, MoreHorizontal, Play, Loader2, AlertCircle, Wifi } from 'lucide-react';
 
 interface VideoPlayerProps {
   videoUrl: string;
   description: string;
   username: string;
   isActive: boolean;
+  alternativeUrl?: string;
 }
 
 export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   videoUrl,
   description,
   username,
-  isActive
+  isActive,
+  alternativeUrl
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -24,24 +26,73 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [needsManualPlay, setNeedsManualPlay] = useState(false);
   const [hasInteracted, setHasInteracted] = useState(false);
   const [errorDetails, setErrorDetails] = useState<string>('');
+  const [currentUrl, setCurrentUrl] = useState(videoUrl);
+  const [networkQuality, setNetworkQuality] = useState<'slow' | 'fast' | 'unknown'>('unknown');
+  const [retryCount, setRetryCount] = useState(0);
 
-  // Enhanced mobile detection
+  // Enhanced mobile detection and debugging
   const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
   const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+  const isAndroid = /Android/i.test(navigator.userAgent);
+  const userAgent = navigator.userAgent;
+
+  // Network quality detection
+  useEffect(() => {
+    if ('connection' in navigator) {
+      const connection = (navigator as any).connection;
+      if (connection) {
+        const effectiveType = connection.effectiveType;
+        setNetworkQuality(effectiveType === '4g' || effectiveType === '3g' ? 'fast' : 'slow');
+        console.log('Network quality detected:', { effectiveType, networkQuality: effectiveType === '4g' || effectiveType === '3g' ? 'fast' : 'slow' });
+      }
+    }
+  }, []);
+
+  // Comprehensive mobile debugging
+  useEffect(() => {
+    console.log('VideoPlayer Mobile Debug:', {
+      isMobile,
+      isIOS,
+      isAndroid,
+      userAgent,
+      videoUrl,
+      alternativeUrl,
+      currentUrl,
+      networkQuality,
+      hasWebKit: 'webkitRequestFullscreen' in document.createElement('div'),
+      hasVideoSupport: !!document.createElement('video').canPlayType,
+      mp4Support: document.createElement('video').canPlayType('video/mp4'),
+      webmSupport: document.createElement('video').canPlayType('video/webm')
+    });
+  }, [videoUrl, isMobile, isIOS, isAndroid, userAgent, currentUrl, networkQuality]);
 
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
 
     const handleLoadStart = () => {
-      console.log('Video load started:', videoUrl, 'Mobile:', isMobile);
+      console.log('Video load started:', {
+        url: currentUrl,
+        isMobile,
+        isIOS,
+        isAndroid,
+        retryCount,
+        networkQuality
+      });
       setIsLoading(true);
       setHasError(false);
       setErrorDetails('');
     };
 
     const handleCanPlay = () => {
-      console.log('Video can play:', videoUrl, 'Mobile:', isMobile);
+      console.log('Video can play:', {
+        url: currentUrl,
+        isMobile,
+        duration: video.duration,
+        videoWidth: video.videoWidth,
+        videoHeight: video.videoHeight,
+        readyState: video.readyState
+      });
       setIsLoading(false);
       setHasError(false);
     };
@@ -68,29 +119,73 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         }
       }
 
-      console.error('Video error:', errorMessage, 'Code:', error?.code, 'URL:', videoUrl, 'Mobile:', isMobile);
+      console.error('Video error:', {
+        errorMessage,
+        errorCode: error?.code,
+        url: currentUrl,
+        isMobile,
+        isIOS,
+        isAndroid,
+        userAgent,
+        retryCount,
+        hasAlternative: !!alternativeUrl,
+        networkQuality
+      });
+
+      // Try alternative URL if available and we haven't tried it yet
+      if (alternativeUrl && currentUrl !== alternativeUrl && retryCount < 2) {
+        console.log('Trying alternative URL:', alternativeUrl);
+        setCurrentUrl(alternativeUrl);
+        setRetryCount(prev => prev + 1);
+        return;
+      }
+
       setIsLoading(false);
       setHasError(true);
       setErrorDetails(errorMessage);
     };
 
     const handleLoadedMetadata = () => {
-      console.log('Video metadata loaded:', videoUrl, 'Duration:', video.duration, 'Mobile:', isMobile);
+      console.log('Video metadata loaded:', {
+        url: currentUrl,
+        duration: video.duration,
+        videoWidth: video.videoWidth,
+        videoHeight: video.videoHeight,
+        isMobile,
+        retryCount
+      });
       setIsLoading(false);
+    };
+
+    const handleProgress = () => {
+      if (video.buffered.length > 0) {
+        const buffered = video.buffered.end(0);
+        const duration = video.duration;
+        const percentBuffered = (buffered / duration) * 100;
+        console.log('Video buffering progress:', { percentBuffered, buffered, duration, isMobile });
+      }
     };
 
     video.addEventListener('loadstart', handleLoadStart);
     video.addEventListener('canplay', handleCanPlay);
     video.addEventListener('error', handleError);
     video.addEventListener('loadedmetadata', handleLoadedMetadata);
+    video.addEventListener('progress', handleProgress);
 
     return () => {
       video.removeEventListener('loadstart', handleLoadStart);
       video.removeEventListener('canplay', handleCanPlay);
       video.removeEventListener('error', handleError);
       video.removeEventListener('loadedmetadata', handleLoadedMetadata);
+      video.removeEventListener('progress', handleProgress);
     };
-  }, [videoUrl, isMobile]);
+  }, [currentUrl, isMobile, isIOS, isAndroid, userAgent, retryCount, alternativeUrl, networkQuality]);
+
+  // Update currentUrl when videoUrl changes
+  useEffect(() => {
+    setCurrentUrl(videoUrl);
+    setRetryCount(0);
+  }, [videoUrl]);
 
   useEffect(() => {
     const video = videoRef.current;
@@ -99,12 +194,13 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     if (isActive && !isLoading) {
       const playVideo = async () => {
         try {
+          console.log('Attempting autoplay:', { isMobile, hasInteracted, currentUrl });
           await video.play();
           setIsPlaying(true);
           setNeedsManualPlay(false);
           console.log('Video started playing automatically');
         } catch (error) {
-          console.log('Autoplay failed, requiring manual interaction:', error);
+          console.log('Autoplay failed, requiring manual interaction:', { error, isMobile, userAgent });
           setNeedsManualPlay(true);
           setIsPlaying(false);
         }
@@ -115,20 +211,21 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       video.pause();
       setIsPlaying(false);
     }
-  }, [isActive, isLoading, hasError]);
+  }, [isActive, isLoading, hasError, currentUrl]);
 
   const handleManualPlay = async () => {
     const video = videoRef.current;
     if (!video) return;
 
     try {
+      console.log('Manual play attempt:', { isMobile, currentUrl, userAgent });
       setHasInteracted(true);
       await video.play();
       setIsPlaying(true);
       setNeedsManualPlay(false);
       console.log('Video started playing manually');
     } catch (error) {
-      console.error('Manual play failed:', error);
+      console.error('Manual play failed:', { error, isMobile, currentUrl, userAgent });
       setHasError(true);
       setErrorDetails('Failed to start video playback');
     }
@@ -142,14 +239,16 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       if (isPlaying) {
         video.pause();
         setIsPlaying(false);
+        console.log('Video paused by user');
       } else {
         setHasInteracted(true);
         await video.play();
         setIsPlaying(true);
         setNeedsManualPlay(false);
+        console.log('Video played by user toggle');
       }
     } catch (error) {
-      console.error('Toggle play/pause failed:', error);
+      console.error('Toggle play/pause failed:', { error, isMobile, currentUrl });
       setNeedsManualPlay(true);
     }
   };
@@ -163,11 +262,49 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     const video = videoRef.current;
     if (!video) return;
     
-    console.log('Retrying video load:', videoUrl);
+    console.log('Retrying video load:', { currentUrl, retryCount, hasAlternative: !!alternativeUrl });
+    
+    // If we have an alternative URL and haven't tried it yet, try it
+    if (alternativeUrl && currentUrl === videoUrl && retryCount === 0) {
+      setCurrentUrl(alternativeUrl);
+      setRetryCount(1);
+    } else if (currentUrl === alternativeUrl && retryCount === 1) {
+      // Go back to original URL
+      setCurrentUrl(videoUrl);
+      setRetryCount(2);
+    } else {
+      // Reset to original URL
+      setCurrentUrl(videoUrl);
+      setRetryCount(0);
+    }
+    
     setHasError(false);
     setIsLoading(true);
     setErrorDetails('');
     video.load();
+  };
+
+  // Progressive video attributes based on device and network
+  const getVideoAttributes = () => {
+    const baseAttributes = {
+      loop: true,
+      muted: true,
+      playsInline: true,
+      'webkit-playsinline': 'true' as const
+    };
+
+    if (isMobile) {
+      return {
+        ...baseAttributes,
+        preload: networkQuality === 'slow' ? 'none' : 'metadata',
+        ...(isIOS && { 'x-webkit-airplay': 'allow' })
+      };
+    }
+
+    return {
+      ...baseAttributes,
+      preload: 'auto'
+    };
   };
 
   return (
@@ -175,14 +312,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       {/* Video */}
       <video
         ref={videoRef}
-        src={videoUrl}
+        src={currentUrl}
         className="w-full h-full object-cover"
-        loop
-        muted
-        playsInline
-        webkit-playsinline="true"
-        preload={isMobile ? "metadata" : "auto"}
         onClick={togglePlayPause}
+        {...getVideoAttributes()}
       />
 
       {/* Gradient overlay */}
@@ -194,6 +327,16 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           <div className="bg-black/50 rounded-full p-4 backdrop-blur-sm">
             <Loader2 className="w-8 h-8 text-white animate-spin" />
           </div>
+          {isMobile && (
+            <div className="absolute bottom-32 left-1/2 transform -translate-x-1/2">
+              <div className="bg-black/80 rounded-lg px-4 py-2 backdrop-blur-sm">
+                <p className="text-white text-sm flex items-center">
+                  <Wifi className="w-4 h-4 mr-2" />
+                  Loading video... ({networkQuality} network)
+                </p>
+              </div>
+            </div>
+          )}
         </div>
       )}
 
@@ -204,13 +347,18 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             <AlertCircle className="w-12 h-12 text-red-400 mx-auto mb-4" />
             <p className="text-white text-sm mb-2">Failed to load video</p>
             {errorDetails && (
-              <p className="text-white/70 text-xs mb-4">{errorDetails}</p>
+              <p className="text-white/70 text-xs mb-2">{errorDetails}</p>
+            )}
+            {isMobile && (
+              <p className="text-white/60 text-xs mb-4">
+                Mobile: {isIOS ? 'iOS' : isAndroid ? 'Android' : 'Other'} | Retry #{retryCount}
+              </p>
             )}
             <button
               onClick={retryVideo}
               className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm transition-colors"
             >
-              Retry
+              {alternativeUrl && retryCount === 0 ? 'Try Alternative URL' : 'Retry'}
             </button>
           </div>
         </div>
@@ -227,7 +375,9 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           </div>
           <div className="absolute bottom-32 left-1/2 transform -translate-x-1/2">
             <div className="bg-black/80 rounded-lg px-4 py-2 backdrop-blur-sm">
-              <p className="text-white text-sm">Tap to play video</p>
+              <p className="text-white text-sm">
+                {isMobile ? `Tap to play (${isIOS ? 'iOS' : 'Mobile'})` : 'Tap to play video'}
+              </p>
             </div>
           </div>
         </div>
@@ -293,6 +443,13 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           <span>🥳</span>
           <span>✨</span>
         </div>
+
+        {/* Debug info for mobile (only in development) */}
+        {isMobile && process.env.NODE_ENV === 'development' && (
+          <div className="mt-2 text-xs text-white/40">
+            Debug: {isIOS ? 'iOS' : isAndroid ? 'Android' : 'Mobile'} | URL: {currentUrl === videoUrl ? 'Primary' : 'Alternative'} | Retry: {retryCount}
+          </div>
+        )}
       </div>
     </div>
   );

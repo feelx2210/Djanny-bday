@@ -206,6 +206,7 @@ export const DjannyTokFeed: React.FC = () => {
               description={video.description}
               username={video.username}
               isActive={index === currentVideoIndex}
+              alternativeUrl={video.alternativeUrl}
             />
           </div>
         ))}

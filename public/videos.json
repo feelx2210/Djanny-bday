@@ -1,0 +1,23 @@
+
+{
+  "videos": [
+    {
+      "id": 1,
+      "filename": "sample-birthday-1.mp4",
+      "username": "family_wishes",
+      "description": "🎉 Happy Birthday Djanny! Hope your special day is as amazing as you are! Can't wait to celebrate with you! 🎂✨"
+    },
+    {
+      "id": 2,
+      "filename": "sample-birthday-2.mp4",
+      "username": "college_friends",
+      "description": "🥳 From all of us to you - may this new year of life bring you endless joy, laughter, and all your heart desires! 🎈"
+    },
+    {
+      "id": 3,
+      "filename": "sample-birthday-3.mp4",
+      "username": "work_colleagues",
+      "description": "🎂 Remember when we used to dream about growing up? Well, here we are! Happy Birthday to my forever friend! 💖"
+    }
+  ]
+}

@@ -1,43 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { VideoPlayer } from './VideoPlayer';
-
-// Mock video data - in real app, this would come from Google Drive/Dropbox API
-const mockVideos = [
-  {
-    id: 1,
-    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/BigBuckBunny.mp4',
-    username: 'happybirthday_squad',
-    description: '🎉 Happy Birthday Djanny! Hope your special day is as amazing as you are! Can\'t wait to celebrate with you! 🎂✨'
-  },
-  {
-    id: 2,
-    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ElephantsDream.mp4',
-    username: 'family_wishes',
-    description: '🥳 From all of us to you - may this new year of life bring you endless joy, laughter, and all your heart desires! 🎈'
-  },
-  {
-    id: 3,
-    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerBlazes.mp4',
-    username: 'childhood_friends',
-    description: '🎂 Remember when we used to dream about growing up? Well, here we are! Happy Birthday to my forever friend! 💖'
-  },
-  {
-    id: 4,
-    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerEscapes.mp4',
-    username: 'work_colleagues',
-    description: '🌟 Another year of being absolutely wonderful! Wishing you success, happiness, and cake... lots of cake! 🍰'
-  },
-  {
-    id: 5,
-    videoUrl: 'https://commondatastorage.googleapis.com/gtv-videos-bucket/sample/ForBiggerFun.mp4',
-    username: 'college_crew',
-    description: '🎊 From cramming for exams to celebrating birthdays - some things never change! Have the best day ever! 📚🎉'
-  }
-];
+import { useVideoLoader } from '../hooks/useVideoLoader';
+import { RefreshCw, AlertCircle, Gift } from 'lucide-react';
 
 export const DjannyTokFeed: React.FC = () => {
+  const { videos, loading, error, refreshVideos } = useVideoLoader();
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const [isScrolling, setIsScrolling] = useState(false);
+  const [showRefreshHint, setShowRefreshHint] = useState(false);
   
   useEffect(() => {
     let touchStartY = 0;
@@ -48,7 +18,7 @@ export const DjannyTokFeed: React.FC = () => {
     };
 
     const handleTouchEnd = (e: TouchEvent) => {
-      if (isScrolling) return;
+      if (isScrolling || videos.length === 0) return;
       
       touchEndY = e.changedTouches[0].screenY;
       const deltaY = touchStartY - touchEndY;
@@ -57,12 +27,12 @@ export const DjannyTokFeed: React.FC = () => {
       if (Math.abs(deltaY) > 50) {
         setIsScrolling(true);
         
-        if (deltaY > 0 && currentVideoIndex < mockVideos.length - 1) {
-          // Swipe up - next video
-          setCurrentVideoIndex(prev => prev + 1);
-        } else if (deltaY < 0 && currentVideoIndex > 0) {
-          // Swipe down - previous video
-          setCurrentVideoIndex(prev => prev - 1);
+        if (deltaY > 0) {
+          // Swipe up - next video (with endless loop)
+          setCurrentVideoIndex(prev => (prev + 1) % videos.length);
+        } else {
+          // Swipe down - previous video (with endless loop)
+          setCurrentVideoIndex(prev => (prev - 1 + videos.length) % videos.length);
         }
         
         setTimeout(() => setIsScrolling(false), 500);
@@ -70,17 +40,17 @@ export const DjannyTokFeed: React.FC = () => {
     };
 
     const handleWheel = (e: WheelEvent) => {
-      if (isScrolling) return;
+      if (isScrolling || videos.length === 0) return;
       
       e.preventDefault();
       setIsScrolling(true);
       
-      if (e.deltaY > 0 && currentVideoIndex < mockVideos.length - 1) {
-        // Scroll down - next video
-        setCurrentVideoIndex(prev => prev + 1);
-      } else if (e.deltaY < 0 && currentVideoIndex > 0) {
-        // Scroll up - previous video
-        setCurrentVideoIndex(prev => prev - 1);
+      if (e.deltaY > 0) {
+        // Scroll down - next video (with endless loop)
+        setCurrentVideoIndex(prev => (prev + 1) % videos.length);
+      } else {
+        // Scroll up - previous video (with endless loop)
+        setCurrentVideoIndex(prev => (prev - 1 + videos.length) % videos.length);
       }
       
       setTimeout(() => setIsScrolling(false), 500);
@@ -96,39 +66,140 @@ export const DjannyTokFeed: React.FC = () => {
       window.removeEventListener('touchend', handleTouchEnd);
       window.removeEventListener('wheel', handleWheel);
     };
-  }, [currentVideoIndex, isScrolling]);
+  }, [currentVideoIndex, isScrolling, videos.length]);
 
-  // Keyboard navigation
+  // Keyboard navigation with endless loop
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (isScrolling) return;
+      if (isScrolling || videos.length === 0) return;
       
-      if (e.key === 'ArrowDown' && currentVideoIndex < mockVideos.length - 1) {
+      if (e.key === 'ArrowDown') {
         setIsScrolling(true);
-        setCurrentVideoIndex(prev => prev + 1);
+        setCurrentVideoIndex(prev => (prev + 1) % videos.length);
         setTimeout(() => setIsScrolling(false), 500);
-      } else if (e.key === 'ArrowUp' && currentVideoIndex > 0) {
+      } else if (e.key === 'ArrowUp') {
         setIsScrolling(true);
-        setCurrentVideoIndex(prev => prev - 1);
+        setCurrentVideoIndex(prev => (prev - 1 + videos.length) % videos.length);
         setTimeout(() => setIsScrolling(false), 500);
       }
     };
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentVideoIndex, isScrolling]);
+  }, [currentVideoIndex, isScrolling, videos.length]);
+
+  // Pull-to-refresh detection
+  useEffect(() => {
+    let startY = 0;
+    let isAtTop = true;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      startY = e.touches[0].clientY;
+      isAtTop = window.scrollY === 0;
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!isAtTop) return;
+      
+      const currentY = e.touches[0].clientY;
+      const pullDistance = currentY - startY;
+      
+      if (pullDistance > 100) {
+        setShowRefreshHint(true);
+      }
+    };
+
+    const handleTouchEnd = () => {
+      if (showRefreshHint) {
+        refreshVideos();
+        setShowRefreshHint(false);
+      }
+    };
+
+    document.addEventListener('touchstart', handleTouchStart, { passive: true });
+    document.addEventListener('touchmove', handleTouchMove, { passive: true });
+    document.addEventListener('touchend', handleTouchEnd, { passive: true });
+
+    return () => {
+      document.removeEventListener('touchstart', handleTouchStart);
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('touchend', handleTouchEnd);
+    };
+  }, [showRefreshHint, refreshVideos]);
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="relative w-full h-screen overflow-hidden bg-black flex items-center justify-center">
+        <div className="text-center text-white">
+          <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-lg font-medium">Loading birthday videos...</p>
+          <p className="text-sm opacity-75 mt-2">Discovering videos from pCloud</p>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error && videos.length === 0) {
+    return (
+      <div className="relative w-full h-screen overflow-hidden bg-black flex items-center justify-center">
+        <div className="text-center text-white px-6">
+          <AlertCircle className="w-16 h-16 text-destructive mx-auto mb-4" />
+          <h2 className="text-xl font-semibold mb-2">Unable to Load Videos</h2>
+          <p className="text-sm opacity-75 mb-6">{error}</p>
+          <button
+            onClick={refreshVideos}
+            className="bg-primary hover:bg-primary/90 text-white px-6 py-2 rounded-full font-medium transition-colors"
+          >
+            Try Again
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // No videos state
+  if (videos.length === 0) {
+    return (
+      <div className="relative w-full h-screen overflow-hidden bg-black flex items-center justify-center">
+        <div className="text-center text-white px-6">
+          <Gift className="w-16 h-16 text-birthday-gold mx-auto mb-4" />
+          <h2 className="text-xl font-semibold mb-2">No Birthday Videos Yet</h2>
+          <p className="text-sm opacity-75 mb-6">Videos will appear here once they're uploaded to the videos folder</p>
+          <button
+            onClick={refreshVideos}
+            className="bg-primary hover:bg-primary/90 text-white px-6 py-2 rounded-full font-medium transition-colors flex items-center mx-auto"
+          >
+            <RefreshCw className="w-4 h-4 mr-2" />
+            Check for Videos
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="relative w-full h-screen overflow-hidden bg-black">
+      {/* Pull-to-refresh hint */}
+      {showRefreshHint && (
+        <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-20 bg-black/80 backdrop-blur-sm rounded-full px-4 py-2">
+          <p className="text-white text-sm flex items-center">
+            <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+            Release to refresh
+          </p>
+        </div>
+      )}
+
       {/* Video container with smooth transitions */}
       <div 
         className="flex flex-col transition-transform duration-500 ease-out"
         style={{ 
           transform: `translateY(-${currentVideoIndex * 100}vh)`,
-          height: `${mockVideos.length * 100}vh`
+          height: `${videos.length * 100}vh`
         }}
       >
-        {mockVideos.map((video, index) => (
+        {videos.map((video, index) => (
           <div key={video.id} className="w-full h-screen flex-shrink-0">
             <VideoPlayer
               videoUrl={video.videoUrl}
@@ -140,9 +211,9 @@ export const DjannyTokFeed: React.FC = () => {
         ))}
       </div>
 
-      {/* Progress indicator */}
+      {/* Progress indicator with endless loop visualization */}
       <div className="absolute right-2 top-1/2 transform -translate-y-1/2 flex flex-col space-y-2 z-10">
-        {mockVideos.map((_, index) => (
+        {videos.map((_, index) => (
           <div
             key={index}
             className={`w-1 h-8 rounded-full transition-all duration-300 ${
@@ -154,8 +225,16 @@ export const DjannyTokFeed: React.FC = () => {
         ))}
       </div>
 
-      {/* Swipe instruction (shows briefly on first load) */}
-      {currentVideoIndex === 0 && (
+      {/* Video counter and endless loop indicator */}
+      <div className="absolute top-4 left-4 z-10 bg-black/50 backdrop-blur-sm rounded-lg px-3 py-2">
+        <p className="text-white text-sm font-medium">
+          {currentVideoIndex + 1} of {videos.length}
+        </p>
+        <p className="text-white/60 text-xs">∞ endless loop</p>
+      </div>
+
+      {/* Swipe instruction (shows on first video) */}
+      {currentVideoIndex === 0 && videos.length > 1 && (
         <div className="absolute bottom-32 left-1/2 transform -translate-x-1/2 z-10 animate-fade-in">
           <div className="bg-black/50 backdrop-blur-sm rounded-full px-4 py-2">
             <p className="text-white text-sm">Swipe up for more videos 👆</p>

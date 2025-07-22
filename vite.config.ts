@@ -22,7 +22,7 @@ export default defineConfig(({ mode }) => ({
   build: {
     outDir: 'dist',
     assetsDir: 'assets',
-    // Ensure relative paths for pCloud hosting
+    // Ensure relative paths for custom domain hosting
     rollupOptions: {
       output: {
         assetFileNames: 'assets/[name]-[hash][extname]',
@@ -31,5 +31,5 @@ export default defineConfig(({ mode }) => ({
       }
     }
   },
-  base: '/Djanny-bday/' // Updated to match your renamed repository
+  base: '/' // Changed from '/Djanny-bday/' to '/' for custom domain hosting
 }));

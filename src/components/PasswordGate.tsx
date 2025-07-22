@@ -1,10 +1,8 @@
-
 import React, { useState, useEffect } from 'react';
 import { Gift, Lock } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-
 const CORRECT_PASSWORD = 'djanny2024';
 const AUTH_KEY = 'djanny-auth';
 const SESSION_DURATION = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
@@ -13,13 +11,15 @@ interface AuthSession {
   authenticated: boolean;
   timestamp: number;
 }
-
-export const PasswordGate: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export const PasswordGate: React.FC<{
+  children: React.ReactNode;
+}> = ({
+  children
+}) => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-
   useEffect(() => {
     // Check if user is already authenticated
     const stored = localStorage.getItem(AUTH_KEY);
@@ -27,9 +27,9 @@ export const PasswordGate: React.FC<{ children: React.ReactNode }> = ({ children
       try {
         const session: AuthSession = JSON.parse(stored);
         const now = Date.now();
-        
+
         // Check if session is still valid (within 24 hours)
-        if (session.authenticated && (now - session.timestamp) < SESSION_DURATION) {
+        if (session.authenticated && now - session.timestamp < SESSION_DURATION) {
           setIsAuthenticated(true);
         } else {
           // Session expired, clear it
@@ -41,7 +41,6 @@ export const PasswordGate: React.FC<{ children: React.ReactNode }> = ({ children
       }
     }
   }, []);
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -63,19 +62,15 @@ export const PasswordGate: React.FC<{ children: React.ReactNode }> = ({ children
       setIsLoading(false);
     }, 500);
   };
-
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       handleSubmit(e as any);
     }
   };
-
   if (isAuthenticated) {
     return <>{children}</>;
   }
-
-  return (
-    <div className="min-h-screen bg-background flex items-center justify-center p-4">
+  return <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-gradient-to-br from-background via-card to-background" />
       
       <Card className="w-full max-w-md relative z-10 bg-card/95 border-border shadow-video">
@@ -102,45 +97,24 @@ export const PasswordGate: React.FC<{ children: React.ReactNode }> = ({ children
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="relative">
               <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input
-                type="password"
-                placeholder="Enter password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                onKeyDown={handleKeyDown}
-                className="pl-10 bg-input border-border focus:ring-tiktok-pink focus:border-tiktok-pink"
-                disabled={isLoading}
-                autoFocus
-              />
+              <Input type="password" placeholder="Enter password" value={password} onChange={e => setPassword(e.target.value)} onKeyDown={handleKeyDown} className="pl-10 bg-input border-border focus:ring-tiktok-pink focus:border-tiktok-pink" disabled={isLoading} autoFocus />
             </div>
 
-            {error && (
-              <div className="text-sm text-destructive text-center animate-fade-in">
+            {error && <div className="text-sm text-destructive text-center animate-fade-in">
                 {error}
-              </div>
-            )}
+              </div>}
 
-            <Button
-              type="submit"
-              className="w-full bg-gradient-birthday hover:opacity-90 text-black font-semibold transition-all duration-200 hover:scale-105"
-              disabled={isLoading || !password.trim()}
-            >
-              {isLoading ? (
-                <div className="flex items-center space-x-2">
+            <Button type="submit" className="w-full bg-gradient-birthday hover:opacity-90 text-black font-semibold transition-all duration-200 hover:scale-105" disabled={isLoading || !password.trim()}>
+              {isLoading ? <div className="flex items-center space-x-2">
                   <div className="w-4 h-4 border-2 border-black/30 border-t-black rounded-full animate-spin" />
                   <span>Checking...</span>
-                </div>
-              ) : (
-                'Enter Birthday Zone 🎉'
-              )}
+                </div> : 'Enter Birthday Zone 🎉'}
             </Button>
           </form>
 
           <div className="text-xs text-muted-foreground text-center">
-            Your session will be saved for 24 hours
-          </div>
+        </div>
         </CardContent>
       </Card>
-    </div>
-  );
+    </div>;
 };

@@ -1,4 +1,3 @@
-
 import React, { useRef, useEffect, useState } from 'react';
 import { Heart, Share, MessageCircle, MoreHorizontal, Volume2, VolumeX } from 'lucide-react';
 import { useAudio } from '../contexts/AudioContext';
@@ -25,11 +24,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
 
-  const { hasUserInteracted, isGloballyMuted, toggleGlobalMute, shouldAutoplayWithSound, markUserInteraction } = useAudio();
+  const { hasUserInteracted, hasEnabledSound, isGloballyMuted, toggleGlobalMute, shouldAutoplayWithSound, enableSound } = useAudio();
 
-  // Mobile detection
-  const isMobileDevice = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-  const shouldBeMuted = isMobileDevice || !shouldAutoplayWithSound;
+  // Videos should be muted unless both conditions are met
+  const shouldBeMuted = !shouldAutoplayWithSound;
 
   // Use preloaded video if available
   useEffect(() => {
@@ -101,26 +99,23 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         }
       } catch (error) {
         console.warn('Autoplay failed:', error);
-        // On mobile, this is expected - just ensure muted autoplay
-        if (isMobileDevice) {
-          try {
-            video.muted = true;
-            await video.play();
-            setIsPlaying(true);
-          } catch {
-            setIsPlaying(false);
-          }
+        // Always try muted autoplay as fallback
+        try {
+          video.muted = true;
+          await video.play();
+          setIsPlaying(true);
+        } catch {
+          setIsPlaying(false);
         }
       }
     };
 
-    // Small delay to ensure video is ready
     const timeout = setTimeout(attemptPlay, 100);
     return () => clearTimeout(timeout);
-  }, [isActive, hasError, shouldBeMuted, isMobileDevice]);
+  }, [isActive, hasError, shouldBeMuted]);
 
   const handleVideoClick = () => {
-    markUserInteraction();
+    enableSound(); // Enable sound for entire session
     
     const video = videoRef.current;
     if (!video) return;
@@ -139,7 +134,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   };
 
   const handleMuteToggle = () => {
-    markUserInteraction();
+    enableSound(); // Enable sound for entire session
     toggleGlobalMute();
     
     const video = videoRef.current;
@@ -149,9 +144,19 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   };
 
   const handleLike = () => {
-    markUserInteraction();
+    enableSound(); // Enable sound for entire session
     setLiked(!liked);
     setLikes(prev => liked ? prev - 1 : prev + 1);
+  };
+
+  const handleShare = () => {
+    enableSound(); // Enable sound for entire session
+    // Share functionality would go here
+  };
+
+  const handleMore = () => {
+    enableSound(); // Enable sound for entire session
+    // More options functionality would go here
   };
 
   return (
@@ -173,7 +178,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       {/* Gradient overlay */}
       <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-transparent to-transparent pointer-events-none" />
 
-      {/* Simple loading indicator - no manual play button */}
+      {/* Loading indicator */}
       {isLoading && !hasError && (
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="w-8 h-8 border-2 border-white border-t-transparent rounded-full animate-spin" />
@@ -210,7 +215,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             )}
           </div>
           <span className="text-white text-xs mt-1 font-medium">
-            {shouldBeMuted ? 'Unmute' : 'Mute'}
+            {shouldBeMuted ? 'Sound' : 'Mute'}
           </span>
         </button>
 
@@ -229,7 +234,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
         {/* Share button */}
         <button 
-          onClick={markUserInteraction}
+          onClick={handleShare}
           className="flex flex-col items-center group"
         >
           <div className="w-12 h-12 bg-secondary/80 rounded-full flex items-center justify-center backdrop-blur-sm group-active:scale-95 transition-transform">
@@ -240,7 +245,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
         {/* More options */}
         <button 
-          onClick={markUserInteraction}
+          onClick={handleMore}
           className="flex flex-col items-center group"
         >
           <div className="w-12 h-12 bg-secondary/80 rounded-full flex items-center justify-center backdrop-blur-sm group-active:scale-95 transition-transform">
@@ -269,10 +274,15 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
         {/* Audio status indicator */}
         <div className="mt-2 flex items-center text-xs text-white/60">
-          {shouldBeMuted ? (
+          {!hasEnabledSound ? (
             <>
               <VolumeX className="w-3 h-3 mr-1" />
-              <span>Tap volume to enable sound</span>
+              <span>Tap anywhere for sound</span>
+            </>
+          ) : shouldBeMuted ? (
+            <>
+              <VolumeX className="w-3 h-3 mr-1" />
+              <span>Muted</span>
             </>
           ) : (
             <>

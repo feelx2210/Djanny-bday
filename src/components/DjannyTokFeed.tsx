@@ -8,7 +8,7 @@ import { RefreshCw, AlertCircle, Gift, Volume2, VolumeX } from 'lucide-react';
 export const DjannyTokFeed: React.FC = () => {
   const { videos, loading, error, refreshVideos } = useVideoLoader();
   const { preloadVideos, getPreloadedVideo, preloadProgress } = useVideoPreloader();
-  const { hasUserInteracted, markUserInteraction, shouldAutoplayWithSound } = useAudio();
+  const { hasUserInteracted, hasEnabledSound, shouldAutoplayWithSound, enableSound } = useAudio();
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const [isScrolling, setIsScrolling] = useState(false);
   const [showRefreshHint, setShowRefreshHint] = useState(false);
@@ -40,7 +40,7 @@ export const DjannyTokFeed: React.FC = () => {
     return () => clearTimeout(timeout);
   }, [currentVideoIndex, videos, preloadVideos]);
 
-  // Swipe navigation
+  // Swipe navigation with sound enablement
   useEffect(() => {
     let touchStartY = 0;
     let touchEndY = 0;
@@ -52,7 +52,7 @@ export const DjannyTokFeed: React.FC = () => {
     const handleTouchEnd = (e: TouchEvent) => {
       if (isScrolling || videos.length === 0) return;
       
-      markUserInteraction();
+      enableSound(); // Enable sound for entire session on any swipe
       
       touchEndY = e.changedTouches[0].screenY;
       const deltaY = touchStartY - touchEndY;
@@ -66,7 +66,7 @@ export const DjannyTokFeed: React.FC = () => {
           setCurrentVideoIndex(prev => (prev - 1 + videos.length) % videos.length);
         }
         
-        setTimeout(() => setIsScrolling(false), 300); // Faster transition
+        setTimeout(() => setIsScrolling(false), 300);
       }
     };
 
@@ -74,7 +74,7 @@ export const DjannyTokFeed: React.FC = () => {
       if (isScrolling || videos.length === 0) return;
       
       e.preventDefault();
-      markUserInteraction();
+      enableSound(); // Enable sound for entire session on scroll
       setIsScrolling(true);
       
       if (e.deltaY > 0) {
@@ -95,15 +95,15 @@ export const DjannyTokFeed: React.FC = () => {
       window.removeEventListener('touchend', handleTouchEnd);
       window.removeEventListener('wheel', handleWheel);
     };
-  }, [currentVideoIndex, isScrolling, videos.length, markUserInteraction]);
+  }, [currentVideoIndex, isScrolling, videos.length, enableSound]);
 
-  // Keyboard navigation
+  // Keyboard navigation with sound enablement
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (isScrolling || videos.length === 0) return;
       
       if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
-        markUserInteraction();
+        enableSound(); // Enable sound for entire session on keyboard navigation
         setIsScrolling(true);
         
         if (e.key === 'ArrowDown') {
@@ -118,7 +118,7 @@ export const DjannyTokFeed: React.FC = () => {
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [currentVideoIndex, isScrolling, videos.length, markUserInteraction]);
+  }, [currentVideoIndex, isScrolling, videos.length, enableSound]);
 
   // Pull-to-refresh detection
   useEffect(() => {
@@ -223,20 +223,20 @@ export const DjannyTokFeed: React.FC = () => {
         </div>
       )}
 
-      {/* First-time audio hint */}
-      {!hasUserInteracted && currentVideoIndex === 0 && videos.length > 0 && (
+      {/* First-time sound hint */}
+      {!hasEnabledSound && currentVideoIndex === 0 && videos.length > 0 && (
         <div className="absolute top-20 left-1/2 transform -translate-x-1/2 z-20 animate-fade-in">
           <div className="bg-black/80 backdrop-blur-sm rounded-lg px-4 py-3">
             <p className="text-white text-sm flex items-center">
               <VolumeX className="w-4 h-4 mr-2" />
-              Swipe up to enable sound
+              Tap anywhere for sound
             </p>
           </div>
         </div>
       )}
 
       {/* Global audio status indicator */}
-      {hasUserInteracted && (
+      {hasEnabledSound && (
         <div className="absolute top-4 right-4 z-20">
           <div className="bg-black/50 backdrop-blur-sm rounded-full p-2">
             {shouldAutoplayWithSound ? (
@@ -300,11 +300,11 @@ export const DjannyTokFeed: React.FC = () => {
         <p className="text-white/60 text-xs">∞ endless loop</p>
       </div>
 
-      {/* Swipe instruction */}
-      {currentVideoIndex === 0 && videos.length > 1 && (
+      {/* Updated swipe instruction */}
+      {currentVideoIndex === 0 && videos.length > 1 && !hasEnabledSound && (
         <div className="absolute bottom-32 left-1/2 transform -translate-x-1/2 z-10 animate-fade-in">
           <div className="bg-black/50 backdrop-blur-sm rounded-full px-4 py-2">
-            <p className="text-white text-sm">Swipe up for more videos 👆</p>
+            <p className="text-white text-sm">Swipe up for sound & more videos 👆</p>
           </div>
         </div>
       )}

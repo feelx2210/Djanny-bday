@@ -6,36 +6,30 @@
       "filename": "Greetings Number 1",
       "username": "felix-the-cat",
       "description": "🎉 Happy Birthday Djanny! Hope your special day is as amazing as you are! Can't wait to celebrate with you! 🎂✨",
-      "videoUrl": "https://res.cloudinary.com/df7nvdmsy/video/upload/v1753162626/vid1_pti6cw.mp4"
+      "videoUrl": "https://res.cloudinary.com/df7nvdmsy/video/upload/v1753187482/vid001.mp4"
     },
     {
       "id": 2,
       "filename": "birthday-video-2.mp4",
       "username": "college_friends",
       "description": "🥳 From all of us to you - may this new year of life bring you endless joy, laughter, and all your heart desires! 🎈",
-      "videoUrl": "https://res.cloudinary.com/df7nvdmsy/video/upload/v1753162625/vid2_ouwesw.mp4"
+      "videoUrl": "https://res.cloudinary.com/df7nvdmsy/video/upload/v1753187481/vid002.mp4"
     },
     {
       "id": 3,
       "filename": "birthday-video-3.mp4",
       "username": "Palmbeach-stuttgart",
       "description": "🎂 Remember when we used to dream about growing up? Well, here we are! Happy Birthday to my forever friend! 💖",
-      "videoUrl": "https://res.cloudinary.com/df7nvdmsy/video/upload/v1753162625/vid3_m348d7.mp4"
+      "videoUrl": "https://res.cloudinary.com/df7nvdmsy/video/upload/v1753187483/vid003.mp4"
     },
     {
       "id": 4,
       "filename": "birthday-video-4.mp4",
       "username": "Palmbeach-Pforzheim",
       "description": "🎂 Remember when we used to dream about growing up? Well, here we are! Happy Birthday to my forever friend! 💖",
-      "videoUrl": "https://res.cloudinary.com/df7nvdmsy/video/upload/v1753162625/vid4_hhke0x.mp4"
+      "videoUrl": "https://res.cloudinary.com/df7nvdmsy/video/upload/v1753187481/vid004.mp4"
     },
-    {
-      "id": 5,
-      "filename": "birthday-video-5.mp4",
-      "username": "LaCage Gääng",
-      "description": "🎂 Remember when we used to dream about growing up? Well, here we are! Happy Birthday to my forever friend! 💖",
-      "videoUrl": "https://res.cloudinary.com/df7nvdmsy/video/upload/v1753162626/vid5_iwbkir.mp4"
-    }
+
   ],
   "_instructions": {
     "description": "This file contains video data for the DjannyTok birthday app. Videos should be optimized for mobile viewing.",

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Gift, Lock } from 'lucide-react';
+import { Gift } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
@@ -102,9 +102,8 @@ export const PasswordGate: React.FC<{
 
         <CardContent className="flex flex-col items-center space-y-4">
           <form onSubmit={handleSubmit} className="w-full space-y-4 flex flex-col items-center">
-            <div className="relative w-full">
-              <Lock className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-              <Input type="password" placeholder="Enter password" value={password} onChange={e => setPassword(e.target.value)} onKeyDown={handleKeyDown} className="pl-10 bg-input border-border focus:ring-tiktok-pink focus:border-tiktok-pink text-center" disabled={isLoading} autoFocus />
+            <div className="w-full">
+              <Input type="password" placeholder="Enter password" value={password} onChange={e => setPassword(e.target.value)} onKeyDown={handleKeyDown} className="bg-input border-border focus:ring-tiktok-pink focus:border-tiktok-pink text-center" disabled={isLoading} autoFocus />
             </div>
 
             {error && <div className="text-sm text-destructive text-center animate-fade-in">

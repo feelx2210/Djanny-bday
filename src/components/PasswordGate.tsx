@@ -3,9 +3,9 @@ import { Gift } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-const CORRECT_PASSWORD = 'djanny2024';
+const CORRECT_PASSWORD = '70';
 const AUTH_KEY = 'djanny-auth';
-const SESSION_DURATION = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
+const SESSION_DURATION = 48 * 60 * 60 * 1000; // 48 hours in milliseconds
 
 interface AuthSession {
   authenticated: boolean;

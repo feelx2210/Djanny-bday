@@ -1,16 +1,46 @@
 import React, { useState, useEffect } from 'react';
 import { VideoPlayer } from './VideoPlayer';
 import { useVideoLoader } from '../hooks/useVideoLoader';
+import { useVideoPreloader } from '../hooks/useVideoPreloader';
 import { useAudio } from '../contexts/AudioContext';
 import { RefreshCw, AlertCircle, Gift, Volume2, VolumeX } from 'lucide-react';
 
 export const DjannyTokFeed: React.FC = () => {
   const { videos, loading, error, refreshVideos } = useVideoLoader();
+  const { preloadVideos, getPreloadedVideo, preloadProgress } = useVideoPreloader();
   const { hasUserInteracted, markUserInteraction, shouldAutoplayWithSound } = useAudio();
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const [isScrolling, setIsScrolling] = useState(false);
   const [showRefreshHint, setShowRefreshHint] = useState(false);
-  
+
+  // TikTok-style preloading: preload next 2-3 videos
+  useEffect(() => {
+    if (videos.length === 0) return;
+
+    const preloadNext = () => {
+      const urlsToPreload: string[] = [];
+      
+      // Preload next 2 videos
+      for (let i = 1; i <= 2; i++) {
+        const nextIndex = (currentVideoIndex + i) % videos.length;
+        urlsToPreload.push(videos[nextIndex].videoUrl);
+      }
+      
+      // Also preload previous video for smooth backward navigation
+      const prevIndex = (currentVideoIndex - 1 + videos.length) % videos.length;
+      if (!urlsToPreload.includes(videos[prevIndex].videoUrl)) {
+        urlsToPreload.push(videos[prevIndex].videoUrl);
+      }
+
+      preloadVideos(urlsToPreload);
+    };
+
+    // Delay preloading slightly to not interfere with current video
+    const timeout = setTimeout(preloadNext, 500);
+    return () => clearTimeout(timeout);
+  }, [currentVideoIndex, videos, preloadVideos]);
+
+  // Swipe navigation
   useEffect(() => {
     let touchStartY = 0;
     let touchEndY = 0;
@@ -36,7 +66,7 @@ export const DjannyTokFeed: React.FC = () => {
           setCurrentVideoIndex(prev => (prev - 1 + videos.length) % videos.length);
         }
         
-        setTimeout(() => setIsScrolling(false), 500);
+        setTimeout(() => setIsScrolling(false), 300); // Faster transition
       }
     };
 
@@ -53,7 +83,7 @@ export const DjannyTokFeed: React.FC = () => {
         setCurrentVideoIndex(prev => (prev - 1 + videos.length) % videos.length);
       }
       
-      setTimeout(() => setIsScrolling(false), 500);
+      setTimeout(() => setIsScrolling(false), 300);
     };
 
     window.addEventListener('touchstart', handleTouchStart, { passive: true });
@@ -136,7 +166,7 @@ export const DjannyTokFeed: React.FC = () => {
         <div className="text-center text-white">
           <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
           <p className="text-lg font-medium">Loading birthday videos...</p>
-          <p className="text-sm opacity-75 mt-2">Using Cloudinary for reliable streaming</p>
+          <p className="text-sm opacity-75 mt-2">Optimizing for smooth playback</p>
         </div>
       </div>
     );
@@ -218,9 +248,18 @@ export const DjannyTokFeed: React.FC = () => {
         </div>
       )}
 
-      {/* Video container with smooth transitions */}
+      {/* Preloading indicator */}
+      {Object.keys(preloadProgress).length > 0 && (
+        <div className="absolute top-16 left-4 z-20 bg-black/50 backdrop-blur-sm rounded px-2 py-1">
+          <p className="text-white text-xs opacity-60">
+            Buffering next videos...
+          </p>
+        </div>
+      )}
+
+      {/* Video container with faster transitions */}
       <div 
-        className="flex flex-col transition-transform duration-500 ease-out"
+        className="flex flex-col transition-transform duration-300 ease-out"
         style={{ 
           transform: `translateY(-${currentVideoIndex * 100}vh)`,
           height: `${videos.length * 100}vh`
@@ -233,6 +272,7 @@ export const DjannyTokFeed: React.FC = () => {
               description={video.description}
               username={video.username}
               isActive={index === currentVideoIndex}
+              preloadedVideo={getPreloadedVideo(video.videoUrl)}
             />
           </div>
         ))}

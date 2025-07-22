@@ -3,7 +3,6 @@ import { Gift } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-
 const CORRECT_PASSWORD = 'djanny2024';
 const AUTH_KEY = 'djanny-auth';
 const SESSION_DURATION = 24 * 60 * 60 * 1000; // 24 hours in milliseconds
@@ -12,7 +11,6 @@ interface AuthSession {
   authenticated: boolean;
   timestamp: number;
 }
-
 export const PasswordGate: React.FC<{
   children: React.ReactNode;
 }> = ({
@@ -22,7 +20,6 @@ export const PasswordGate: React.FC<{
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-
   useEffect(() => {
     // Check if user is already authenticated
     const stored = localStorage.getItem(AUTH_KEY);
@@ -44,7 +41,6 @@ export const PasswordGate: React.FC<{
       }
     }
   }, []);
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -66,17 +62,14 @@ export const PasswordGate: React.FC<{
       setIsLoading(false);
     }, 500);
   };
-
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
       handleSubmit(e as any);
     }
   };
-
   if (isAuthenticated) {
     return <>{children}</>;
   }
-
   return <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-gradient-to-br from-background via-card to-background" />
       
@@ -94,9 +87,7 @@ export const PasswordGate: React.FC<{
             <h2 className="text-lg font-semibold text-foreground">
               Welcome to Djanny's Birthday Videos! 🎂
             </h2>
-            <p className="text-sm text-muted-foreground">
-              Enter the password to access the celebration
-            </p>
+            <p className="text-sm text-muted-foreground">Enter the password to access</p>
           </div>
         </CardHeader>
 

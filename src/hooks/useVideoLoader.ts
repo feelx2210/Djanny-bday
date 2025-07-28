@@ -5,7 +5,6 @@ export interface VideoData {
   id: number;
   filename: string;
   username: string;
-  description: string;
   videoUrl?: string;
 }
 

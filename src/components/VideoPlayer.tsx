@@ -4,7 +4,6 @@ import { useAudio } from '../contexts/AudioContext';
 
 interface VideoPlayerProps {
   videoUrl: string;
-  description: string;
   username: string;
   isActive: boolean;
   preloadedVideo?: HTMLVideoElement | null;
@@ -12,7 +11,6 @@ interface VideoPlayerProps {
 
 export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   videoUrl,
-  description,
   username,
   isActive,
   preloadedVideo
@@ -256,11 +254,8 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
       {/* Bottom info */}
       <div className="absolute bottom-0 left-0 right-16 p-4 text-white">
-        <div className="mb-2">
-          <h3 className="font-semibold text-base">@{username}</h3>
-        </div>
         <div className="mb-4">
-          <p className="text-sm leading-relaxed opacity-90">{description}</p>
+          <h3 className="font-semibold text-base">@{username}</h3>
         </div>
         
         {/* Birthday celebration emoji bar */}

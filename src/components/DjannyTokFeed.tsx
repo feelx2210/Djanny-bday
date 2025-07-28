@@ -269,7 +269,6 @@ export const DjannyTokFeed: React.FC = () => {
           <div key={video.id} className="w-full h-screen flex-shrink-0">
             <VideoPlayer
               videoUrl={video.videoUrl}
-              description={video.description}
               username={video.username}
               isActive={index === currentVideoIndex}
               preloadedVideo={getPreloadedVideo(video.videoUrl)}

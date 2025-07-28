@@ -4,6 +4,7 @@ import React, { createContext, useContext, useState, useCallback } from 'react';
 interface AudioContextType {
   hasUserInteracted: boolean;
   hasEnabledSound: boolean;
+  hasUserEverEnabledSound: boolean;
   isGloballyMuted: boolean;
   markUserInteraction: () => void;
   enableSound: () => void;
@@ -16,6 +17,7 @@ const AudioContext = createContext<AudioContextType | undefined>(undefined);
 export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [hasUserInteracted, setHasUserInteracted] = useState(false);
   const [hasEnabledSound, setHasEnabledSound] = useState(false);
+  const [hasUserEverEnabledSound, setHasUserEverEnabledSound] = useState(false);
   const [isGloballyMuted, setIsGloballyMuted] = useState(false);
 
   const markUserInteraction = useCallback(() => {
@@ -30,9 +32,13 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       console.log('Sound enabled for entire session');
       setHasEnabledSound(true);
     }
+    if (!hasUserEverEnabledSound) {
+      console.log('User has enabled sound - persisting preference');
+      setHasUserEverEnabledSound(true);
+    }
     // Also mark user interaction for autoplay compliance
     markUserInteraction();
-  }, [hasEnabledSound, markUserInteraction]);
+  }, [hasEnabledSound, hasUserEverEnabledSound, markUserInteraction]);
 
   const toggleGlobalMute = useCallback(() => {
     setIsGloballyMuted(prev => !prev);
@@ -50,6 +56,7 @@ export const AudioProvider: React.FC<{ children: React.ReactNode }> = ({ childre
       value={{
         hasUserInteracted,
         hasEnabledSound,
+        hasUserEverEnabledSound,
         isGloballyMuted,
         markUserInteraction,
         enableSound,

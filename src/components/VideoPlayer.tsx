@@ -24,10 +24,10 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
 
-  const { hasUserInteracted, hasEnabledSound, isGloballyMuted, toggleGlobalMute, shouldAutoplayWithSound, enableSound } = useAudio();
+  const { hasUserInteracted, hasEnabledSound, hasUserEverEnabledSound, isGloballyMuted, toggleGlobalMute, shouldAutoplayWithSound, enableSound } = useAudio();
 
-  // Videos should be muted unless both conditions are met
-  const shouldBeMuted = !shouldAutoplayWithSound;
+  // Videos should be muted only if user has never enabled sound OR if globally muted
+  const shouldBeMuted = !hasUserEverEnabledSound || isGloballyMuted;
 
   // Use preloaded video if available
   useEffect(() => {

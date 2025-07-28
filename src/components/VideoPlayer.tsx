@@ -165,7 +165,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       <video
         ref={videoRef}
         src={videoUrl}
-        className="w-full h-full object-cover"
+        className="w-full h-full object-contain"
         onClick={handleVideoClick}
         loop
         muted={shouldBeMuted}

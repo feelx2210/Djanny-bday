@@ -27,6 +27,15 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   // Videos should be muted only if user has never enabled sound OR if globally muted
   const shouldBeMuted = !hasUserEverEnabledSound || isGloballyMuted;
 
+  // Sync video muted state with React state
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+    
+    console.log('Syncing video muted state:', shouldBeMuted);
+    video.muted = shouldBeMuted;
+  }, [shouldBeMuted]);
+
   // Use preloaded video if available
   useEffect(() => {
     const video = videoRef.current;
@@ -113,6 +122,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   }, [isActive, hasError, shouldBeMuted]);
 
   const handleVideoClick = () => {
+    console.log('Video clicked, isPlaying:', isPlaying);
     enableSound(); // Enable sound for entire session
     
     const video = videoRef.current;
@@ -131,15 +141,25 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     }
   };
 
+  const handleVideoTouch = (e: React.TouchEvent) => {
+    e.preventDefault();
+    console.log('Video touched');
+    handleVideoClick();
+  };
+
   const handleMuteToggle = () => {
+    console.log('Mute toggle clicked, current isGloballyMuted:', isGloballyMuted);
     enableSound(); // Enable sound for entire session
     toggleGlobalMute();
     
-    const video = videoRef.current;
-    if (video) {
-      // Toggle mute state based on current shouldBeMuted state
-      video.muted = !shouldBeMuted;
-    }
+    // Video muted state will be synced automatically via useEffect
+  };
+
+  const handleMuteTouch = (e: React.TouchEvent) => {
+    e.stopPropagation();
+    e.preventDefault();
+    console.log('Mute button touched');
+    handleMuteToggle();
   };
 
   const handleLike = () => {
@@ -166,6 +186,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         src={videoUrl}
         className="w-full h-full object-contain touch-manipulation"
         onClick={handleVideoClick}
+        onTouchEnd={handleVideoTouch}
         loop
         muted={shouldBeMuted}
         playsInline={true}
@@ -205,6 +226,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         {/* Mute/Unmute button */}
         <button
           onClick={handleMuteToggle}
+          onTouchEnd={handleMuteTouch}
           className="flex flex-col items-center group"
         >
           <div className="w-12 h-12 bg-secondary/80 rounded-full flex items-center justify-center backdrop-blur-sm group-active:scale-95 transition-transform">

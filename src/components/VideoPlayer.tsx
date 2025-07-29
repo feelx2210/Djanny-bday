@@ -137,7 +137,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     
     const video = videoRef.current;
     if (video) {
-      video.muted = !shouldAutoplayWithSound;
+      video.muted = !isGloballyMuted;
     }
   };
 

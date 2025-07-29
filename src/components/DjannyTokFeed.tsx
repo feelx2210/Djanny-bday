@@ -237,27 +237,6 @@ export const DjannyTokFeed: React.FC = () => {
         </div>
       )}
 
-      {/* Global audio status indicator */}
-      {hasEnabledSound && (
-        <div className="absolute top-4 right-4 z-20">
-          <div className="bg-black/50 backdrop-blur-sm rounded-full p-2">
-            {shouldAutoplayWithSound ? (
-              <Volume2 className="w-4 h-4 text-primary" />
-            ) : (
-              <VolumeX className="w-4 h-4 text-white/60" />
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Preloading indicator */}
-      {Object.keys(preloadProgress).length > 0 && (
-        <div className="absolute top-16 left-4 z-20 bg-black/50 backdrop-blur-sm rounded px-2 py-1">
-          <p className="text-white text-xs opacity-60">
-            Buffering next videos...
-          </p>
-        </div>
-      )}
 
       {/* Video container with faster transitions */}
       <div 
@@ -293,13 +272,6 @@ export const DjannyTokFeed: React.FC = () => {
         ))}
       </div>
 
-      {/* Video counter */}
-      <div className="absolute top-4 left-4 z-10 bg-black/50 backdrop-blur-sm rounded-lg px-3 py-2">
-        <p className="text-white text-sm font-medium">
-          {currentVideoIndex + 1} of {videos.length}
-        </p>
-        <p className="text-white/60 text-xs">∞ endless loop</p>
-      </div>
 
       {/* Updated swipe instruction */}
       {currentVideoIndex === 0 && videos.length > 1 && !hasEnabledSound && (

@@ -158,12 +158,12 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   };
 
   return (
-    <div className="relative w-full h-screen bg-black overflow-hidden">
+    <div className="relative w-full h-screen bg-black overflow-hidden touch-manipulation">
       {/* Video with TikTok-style optimization */}
       <video
         ref={videoRef}
         src={videoUrl}
-        className="w-full h-full object-contain"
+        className="w-full h-full object-contain touch-manipulation"
         onClick={handleVideoClick}
         loop
         muted={shouldBeMuted}
@@ -171,6 +171,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         controls={false}
         preload="metadata"
         crossOrigin="anonymous"
+        style={{ touchAction: 'manipulation' }}
       />
 
       {/* Gradient overlay */}

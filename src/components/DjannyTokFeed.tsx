@@ -46,10 +46,12 @@ export const DjannyTokFeed: React.FC = () => {
     let touchEndY = 0;
     
     const handleTouchStart = (e: TouchEvent) => {
+      e.preventDefault();
       touchStartY = e.changedTouches[0].screenY;
     };
 
     const handleTouchEnd = (e: TouchEvent) => {
+      e.preventDefault();
       if (isScrolling || videos.length === 0) return;
       
       enableSound(); // Enable sound for entire session on any swipe
@@ -86,8 +88,8 @@ export const DjannyTokFeed: React.FC = () => {
       setTimeout(() => setIsScrolling(false), 300);
     };
 
-    window.addEventListener('touchstart', handleTouchStart, { passive: true });
-    window.addEventListener('touchend', handleTouchEnd, { passive: true });
+    window.addEventListener('touchstart', handleTouchStart, { passive: false });
+    window.addEventListener('touchend', handleTouchEnd, { passive: false });
     window.addEventListener('wheel', handleWheel, { passive: false });
 
     return () => {
@@ -212,7 +214,7 @@ export const DjannyTokFeed: React.FC = () => {
   }
 
   return (
-    <div className="relative w-full h-screen overflow-hidden bg-black">
+    <div className="relative w-full h-screen overflow-hidden bg-black touch-none">
       {/* Pull-to-refresh hint */}
       {showRefreshHint && (
         <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-20 bg-black/80 backdrop-blur-sm rounded-full px-4 py-2">

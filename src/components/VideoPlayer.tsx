@@ -276,8 +276,15 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         </button>
       </div>
 
-      {/* Bottom info */}
-      <div className="absolute bottom-0 left-0 right-16 p-4 text-white">
+      {/* Bottom info with safe area support */}
+      <div 
+        className="absolute left-0 right-16 text-white" 
+        style={{ 
+          bottom: `calc(1rem + env(safe-area-inset-bottom, 0px))`,
+          paddingLeft: '1rem',
+          paddingRight: '1rem' 
+        }}
+      >
         <div className="mb-4">
           <h3 className="font-semibold text-base">@{username}</h3>
         </div>

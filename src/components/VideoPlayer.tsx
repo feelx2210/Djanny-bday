@@ -276,29 +276,19 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         </button>
       </div>
 
-      {/* Bottom info with safe area support */}
-      <div 
-        className="absolute left-0 right-16 text-white" 
-        style={{ 
-          bottom: `calc(1rem + env(safe-area-inset-bottom, 0px))`,
-          paddingLeft: '1rem',
-          paddingRight: '1rem' 
-        }}
-      >
+      {/* Bottom info */}
+      <div className="absolute bottom-0 left-0 right-16 p-4 text-white">
         <div className="mb-4">
           <h3 className="font-semibold text-base">@{username}</h3>
         </div>
         
-        {/* Birthday celebration emoji bar with enhanced styling */}
-        <div className="flex items-center space-x-3 text-2xl py-2 drop-shadow-lg">
-          <span className="animate-pulse">🎊</span>
-          <span className="animate-bounce" style={{ animationDelay: '0.1s' }}>🎁</span>
-          <span className="animate-pulse" style={{ animationDelay: '0.2s' }}>🍰</span>
-          <span className="animate-bounce" style={{ animationDelay: '0.3s' }}>🎈</span>
-          <span className="animate-pulse" style={{ animationDelay: '0.4s' }}>🎉</span>
-          <span className="animate-bounce" style={{ animationDelay: '0.5s' }}>🥳</span>
-          <span className="animate-pulse" style={{ animationDelay: '0.6s' }}>✨</span>
-          <span className="animate-bounce" style={{ animationDelay: '0.7s' }}>🌟</span>
+        {/* Birthday celebration emoji bar */}
+        <div className="flex items-center space-x-2 text-lg">
+          <span>🎉</span>
+          <span>🎂</span>
+          <span>🎈</span>
+          <span>🥳</span>
+          <span>✨</span>
         </div>
 
         {/* Audio status indicator */}

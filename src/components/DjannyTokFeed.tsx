@@ -68,7 +68,7 @@ export const DjannyTokFeed: React.FC = () => {
           setCurrentVideoIndex(prev => (prev - 1 + videos.length) % videos.length);
         }
         
-        setTimeout(() => setIsScrolling(false), 400);
+        setTimeout(() => setIsScrolling(false), 300);
       }
     };
 
@@ -85,7 +85,7 @@ export const DjannyTokFeed: React.FC = () => {
         setCurrentVideoIndex(prev => (prev - 1 + videos.length) % videos.length);
       }
       
-      setTimeout(() => setIsScrolling(false), 400);
+      setTimeout(() => setIsScrolling(false), 300);
     };
 
     window.addEventListener('touchstart', handleTouchStart, { passive: false });
@@ -238,13 +238,12 @@ export const DjannyTokFeed: React.FC = () => {
       )}
 
 
-      {/* Video container with smooth TikTok-like transitions */}
+      {/* Video container with faster transitions */}
       <div 
-        className="flex flex-col transition-all duration-400 ease-in-out"
+        className="flex flex-col transition-transform duration-300 ease-out"
         style={{ 
-          transform: `translateY(-${currentVideoIndex * 100}vh) scale(${isScrolling ? 0.98 : 1})`,
-          height: `${videos.length * 100}vh`,
-          filter: isScrolling ? 'brightness(0.9)' : 'brightness(1)'
+          transform: `translateY(-${currentVideoIndex * 100}vh)`,
+          height: `${videos.length * 100}vh`
         }}
       >
         {videos.map((video, index) => (

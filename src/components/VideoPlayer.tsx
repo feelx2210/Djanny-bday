@@ -282,13 +282,16 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
           <h3 className="font-semibold text-base">@{username}</h3>
         </div>
         
-        {/* Birthday celebration emoji bar */}
-        <div className="flex items-center space-x-2 text-lg">
-          <span>🎉</span>
-          <span>🎂</span>
-          <span>🎈</span>
-          <span>🥳</span>
-          <span>✨</span>
+        {/* Birthday celebration emoji bar with enhanced styling */}
+        <div className="flex items-center space-x-3 text-2xl py-2 drop-shadow-lg">
+          <span className="animate-pulse">🎊</span>
+          <span className="animate-bounce" style={{ animationDelay: '0.1s' }}>🎁</span>
+          <span className="animate-pulse" style={{ animationDelay: '0.2s' }}>🍰</span>
+          <span className="animate-bounce" style={{ animationDelay: '0.3s' }}>🎈</span>
+          <span className="animate-pulse" style={{ animationDelay: '0.4s' }}>🎉</span>
+          <span className="animate-bounce" style={{ animationDelay: '0.5s' }}>🥳</span>
+          <span className="animate-pulse" style={{ animationDelay: '0.6s' }}>✨</span>
+          <span className="animate-bounce" style={{ animationDelay: '0.7s' }}>🌟</span>
         </div>
 
         {/* Audio status indicator */}

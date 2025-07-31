@@ -304,12 +304,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                 <VolumeX className="w-3 h-3 mr-1" />
                 <span>Muted</span>
               </>
-            ) : (
-              <>
-                <Volume2 className="w-3 h-3 mr-1" />
-                <span>Playing with sound</span>
-              </>
-            )}
+            ) : null}
           </div>
         </div>
       </div>

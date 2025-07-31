@@ -2,7 +2,7 @@ import React from 'react';
 import { Gift } from 'lucide-react';
 export const DjannyTokHeader: React.FC = () => {
   return <div className="absolute top-0 left-0 right-0 z-20 bg-gradient-to-b from-black/50 to-transparent">
-      <div className="flex items-center justify-between px-4 py-3 pt-8">
+      <div className="flex items-center justify-between px-4 py-3 pt-4">
         {/* Left side - empty for symmetry */}
         <div className="w-8" />
         

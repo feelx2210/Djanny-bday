@@ -222,7 +222,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       )}
 
       {/* Right side actions */}
-      <div className="absolute right-3 bottom-20 flex flex-col items-center space-y-6">
+      <div className="absolute right-3 bottom-36 flex flex-col items-center space-y-6">
         {/* Mute/Unmute button */}
         <button
           onClick={handleMuteToggle}
@@ -277,38 +277,40 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       </div>
 
       {/* Bottom info */}
-      <div className="absolute bottom-0 left-0 right-16 p-4 text-white">
-        <div className="mb-4">
-          <h3 className="font-semibold text-base">@{username}</h3>
-        </div>
-        
-        {/* Birthday celebration emoji bar */}
-        <div className="flex items-center space-x-2 text-lg">
-          <span>🎉</span>
-          <span>🎂</span>
-          <span>🎈</span>
-          <span>🥳</span>
-          <span>✨</span>
-        </div>
+      <div className="absolute bottom-0 left-0 right-16 pb-safe pb-24 p-4">
+        <div className="bg-black/40 rounded-lg p-3 backdrop-blur-sm">
+          <div className="mb-3">
+            <h3 className="font-semibold text-base text-white">@{username}</h3>
+          </div>
+          
+          {/* Birthday celebration emoji bar */}
+          <div className="flex items-center space-x-2 text-lg mb-2">
+            <span>🎉</span>
+            <span>🎂</span>
+            <span>🎈</span>
+            <span>🥳</span>
+            <span>✨</span>
+          </div>
 
-        {/* Audio status indicator */}
-        <div className="mt-2 flex items-center text-xs text-white/60">
-          {!hasEnabledSound ? (
-            <>
-              <VolumeX className="w-3 h-3 mr-1" />
-              <span>Tap anywhere for sound</span>
-            </>
-          ) : shouldBeMuted ? (
-            <>
-              <VolumeX className="w-3 h-3 mr-1" />
-              <span>Muted</span>
-            </>
-          ) : (
-            <>
-              <Volume2 className="w-3 h-3 mr-1" />
-              <span>Playing with sound</span>
-            </>
-          )}
+          {/* Audio status indicator */}
+          <div className="flex items-center text-xs text-white/60">
+            {!hasEnabledSound ? (
+              <>
+                <VolumeX className="w-3 h-3 mr-1" />
+                <span>Tap anywhere for sound</span>
+              </>
+            ) : shouldBeMuted ? (
+              <>
+                <VolumeX className="w-3 h-3 mr-1" />
+                <span>Muted</span>
+              </>
+            ) : (
+              <>
+                <Volume2 className="w-3 h-3 mr-1" />
+                <span>Playing with sound</span>
+              </>
+            )}
+          </div>
         </div>
       </div>
     </div>

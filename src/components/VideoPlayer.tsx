@@ -278,7 +278,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
       {/* Bottom info */}
       <div className="absolute bottom-0 left-0 right-16 pb-safe pb-24 p-4">
-        <div className="bg-black/40 rounded-lg p-3 backdrop-blur-sm">
+        <div>
           <div className="mb-3">
             <h3 className="font-semibold text-base text-white">@{username}</h3>
           </div>

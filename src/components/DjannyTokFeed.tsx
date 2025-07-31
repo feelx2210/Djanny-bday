@@ -46,11 +46,23 @@ export const DjannyTokFeed: React.FC = () => {
     let touchEndY = 0;
     
     const handleTouchStart = (e: TouchEvent) => {
+      // Check if touch is on an interactive element
+      const target = e.target as HTMLElement;
+      if (target && (target.closest('button') || target.closest('[onclick]'))) {
+        return; // Don't handle navigation for button touches
+      }
+      
       e.preventDefault();
       touchStartY = e.changedTouches[0].screenY;
     };
 
     const handleTouchEnd = (e: TouchEvent) => {
+      // Check if touch is on an interactive element
+      const target = e.target as HTMLElement;
+      if (target && (target.closest('button') || target.closest('[onclick]'))) {
+        return; // Don't handle navigation for button touches
+      }
+      
       e.preventDefault();
       if (isScrolling || videos.length === 0) return;
       

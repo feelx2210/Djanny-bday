@@ -3,7 +3,7 @@ import { Gift } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-const CORRECT_PASSWORD = '70';
+const CORRECT_PASSWORD = '1955';
 const AUTH_KEY = 'djanny-auth';
 const SESSION_DURATION = 48 * 60 * 60 * 1000; // 48 hours in milliseconds
 

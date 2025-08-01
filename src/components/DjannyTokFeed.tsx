@@ -12,6 +12,7 @@ export const DjannyTokFeed: React.FC = () => {
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const [isScrolling, setIsScrolling] = useState(false);
   const [showRefreshHint, setShowRefreshHint] = useState(false);
+  const feedContainerRef = React.useRef<HTMLDivElement>(null);
 
   // TikTok-style preloading: preload next 2-3 videos
   useEffect(() => {
@@ -40,30 +41,19 @@ export const DjannyTokFeed: React.FC = () => {
     return () => clearTimeout(timeout);
   }, [currentVideoIndex, videos, preloadVideos]);
 
-  // Swipe navigation with sound enablement
+  // Container-based navigation to avoid conflicts with buttons
   useEffect(() => {
+    const container = feedContainerRef.current;
+    if (!container) return;
+
     let touchStartY = 0;
     let touchEndY = 0;
     
     const handleTouchStart = (e: TouchEvent) => {
-      // Check if touch is on an interactive element
-      const target = e.target as HTMLElement;
-      if (target && (target.closest('button') || target.closest('[onclick]'))) {
-        return; // Don't handle navigation for button touches
-      }
-      
-      e.preventDefault();
       touchStartY = e.changedTouches[0].screenY;
     };
 
     const handleTouchEnd = (e: TouchEvent) => {
-      // Check if touch is on an interactive element
-      const target = e.target as HTMLElement;
-      if (target && (target.closest('button') || target.closest('[onclick]'))) {
-        return; // Don't handle navigation for button touches
-      }
-      
-      e.preventDefault();
       if (isScrolling || videos.length === 0) return;
       
       enableSound(); // Enable sound for entire session on any swipe
@@ -100,14 +90,14 @@ export const DjannyTokFeed: React.FC = () => {
       setTimeout(() => setIsScrolling(false), 300);
     };
 
-    window.addEventListener('touchstart', handleTouchStart, { passive: false });
-    window.addEventListener('touchend', handleTouchEnd, { passive: false });
-    window.addEventListener('wheel', handleWheel, { passive: false });
+    container.addEventListener('touchstart', handleTouchStart, { passive: true });
+    container.addEventListener('touchend', handleTouchEnd, { passive: true });
+    container.addEventListener('wheel', handleWheel, { passive: false });
 
     return () => {
-      window.removeEventListener('touchstart', handleTouchStart);
-      window.removeEventListener('touchend', handleTouchEnd);
-      window.removeEventListener('wheel', handleWheel);
+      container.removeEventListener('touchstart', handleTouchStart);
+      container.removeEventListener('touchend', handleTouchEnd);
+      container.removeEventListener('wheel', handleWheel);
     };
   }, [currentVideoIndex, isScrolling, videos.length, enableSound]);
 
@@ -226,7 +216,10 @@ export const DjannyTokFeed: React.FC = () => {
   }
 
   return (
-    <div className="relative w-full h-screen overflow-hidden bg-black touch-none">
+    <div 
+      ref={feedContainerRef}
+      className="relative w-full h-screen overflow-hidden bg-black touch-none"
+    >
       {/* Pull-to-refresh hint */}
       {showRefreshHint && (
         <div className="absolute top-4 left-1/2 transform -translate-x-1/2 z-20 bg-black/80 backdrop-blur-sm rounded-full px-4 py-2">

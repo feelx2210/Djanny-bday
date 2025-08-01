@@ -186,7 +186,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         src={videoUrl}
         className="w-full h-full object-contain touch-manipulation"
         onClick={handleVideoClick}
-        onTouchEnd={handleVideoTouch}
+        
         loop
         muted={shouldBeMuted}
         playsInline={true}
@@ -226,7 +226,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         {/* Mute/Unmute button */}
         <button
           onClick={handleMuteToggle}
-          onTouchEnd={handleMuteTouch}
+          
           className="flex flex-col items-center group"
         >
           <div className="w-12 h-12 bg-secondary/80 rounded-full flex items-center justify-center backdrop-blur-sm group-active:scale-95 transition-transform">

@@ -106,12 +106,17 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         }
       } catch (error) {
         console.warn('Autoplay failed:', error);
-        // Always try muted autoplay as fallback
-        try {
-          video.muted = true;
-          await video.play();
-          setIsPlaying(true);
-        } catch {
+        // Only use muted fallback if user hasn't enabled sound yet
+        if (!hasUserEverEnabledSound) {
+          try {
+            video.muted = true;
+            await video.play();
+            setIsPlaying(true);
+          } catch {
+            setIsPlaying(false);
+          }
+        } else {
+          // Respect user's sound preference, don't force mute
           setIsPlaying(false);
         }
       }

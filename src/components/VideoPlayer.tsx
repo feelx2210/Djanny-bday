@@ -21,6 +21,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [likes, setLikes] = useState(Math.floor(Math.random() * 1000) + 50);
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
+  const [loadingTimeout, setLoadingTimeout] = useState<NodeJS.Timeout | null>(null);
 
   const { hasUserInteracted, hasEnabledSound, hasUserEverEnabledSound, isGloballyMuted, toggleGlobalMute, shouldAutoplayWithSound, enableSound } = useAudio();
 
@@ -56,7 +57,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     }
   }, [preloadedVideo, shouldBeMuted]);
 
-  // Video loading events
+  // Enhanced video loading events with timeout handling
   useEffect(() => {
     const video = videoRef.current;
     if (!video) return;
@@ -64,29 +65,79 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     const handleLoadStart = () => {
       setIsLoading(true);
       setHasError(false);
+      
+      // Clear any existing timeout
+      if (loadingTimeout) {
+        clearTimeout(loadingTimeout);
+      }
+      
+      // Set loading timeout (longer for mobile Safari)
+      const isMobile = /iPad|iPhone|iPod|Android/.test(navigator.userAgent);
+      const timeout = setTimeout(() => {
+        console.warn('Video loading timeout:', videoUrl);
+        setIsLoading(false);
+        setHasError(true);
+      }, isMobile ? 20000 : 15000);
+      
+      setLoadingTimeout(timeout);
     };
 
     const handleCanPlay = () => {
       setIsLoading(false);
       setHasError(false);
+      
+      // Clear loading timeout
+      if (loadingTimeout) {
+        clearTimeout(loadingTimeout);
+        setLoadingTimeout(null);
+      }
     };
 
-    const handleError = () => {
-      console.error('Video error:', videoUrl);
+    const handleError = (e: Event) => {
+      console.error('Video error:', videoUrl, e);
       setIsLoading(false);
       setHasError(true);
+      
+      // Clear loading timeout
+      if (loadingTimeout) {
+        clearTimeout(loadingTimeout);
+        setLoadingTimeout(null);
+      }
+    };
+
+    const handleWaiting = () => {
+      // Video is buffering
+      if (!isLoading) {
+        setIsLoading(true);
+      }
+    };
+
+    const handlePlaying = () => {
+      // Video resumed playing
+      if (isLoading && !hasError) {
+        setIsLoading(false);
+      }
     };
 
     video.addEventListener('loadstart', handleLoadStart);
     video.addEventListener('canplay', handleCanPlay);
     video.addEventListener('error', handleError);
+    video.addEventListener('waiting', handleWaiting);
+    video.addEventListener('playing', handlePlaying);
 
     return () => {
       video.removeEventListener('loadstart', handleLoadStart);
       video.removeEventListener('canplay', handleCanPlay);
       video.removeEventListener('error', handleError);
+      video.removeEventListener('waiting', handleWaiting);
+      video.removeEventListener('playing', handlePlaying);
+      
+      // Clear timeout on cleanup
+      if (loadingTimeout) {
+        clearTimeout(loadingTimeout);
+      }
     };
-  }, [videoUrl]);
+  }, [videoUrl, loadingTimeout, isLoading, hasError]);
 
   // TikTok-style autoplay
   useEffect(() => {
@@ -211,17 +262,35 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         </div>
       )}
 
-      {/* Error state */}
+      {/* Error state with retry option */}
       {hasError && (
         <div className="absolute inset-0 flex items-center justify-center">
           <div className="bg-black/80 rounded-lg p-6 mx-4 text-center backdrop-blur-sm max-w-sm">
             <p className="text-white text-sm mb-2">Video unavailable</p>
-            <button
-              onClick={() => window.location.reload()}
-              className="bg-primary hover:bg-primary/90 text-white px-4 py-2 rounded-lg text-sm transition-colors"
-            >
-              Refresh
-            </button>
+            <p className="text-white/60 text-xs mb-4">
+              Network issue or video format not supported
+            </p>
+            <div className="flex gap-2 justify-center">
+              <button
+                onClick={() => {
+                  setHasError(false);
+                  setIsLoading(true);
+                  const video = videoRef.current;
+                  if (video) {
+                    video.load(); // Retry loading
+                  }
+                }}
+                className="bg-secondary hover:bg-secondary/90 text-white px-3 py-1 rounded text-xs transition-colors"
+              >
+                Retry
+              </button>
+              <button
+                onClick={() => window.location.reload()}
+                className="bg-primary hover:bg-primary/90 text-white px-3 py-1 rounded text-xs transition-colors"
+              >
+                Refresh Page
+              </button>
+            </div>
           </div>
         </div>
       )}

@@ -7,22 +7,33 @@ import { RefreshCw, AlertCircle, Gift, Volume2, VolumeX } from 'lucide-react';
 
 export const DjannyTokFeed: React.FC = () => {
   const { videos, loading, error, refreshVideos } = useVideoLoader();
-  const { preloadVideos, getPreloadedVideo, preloadProgress } = useVideoPreloader();
+  const { 
+    preloadVideos, 
+    getPreloadedVideo, 
+    preloadProgress, 
+    cleanupVideosNotInRange, 
+    memoryUsage, 
+    isMobileSafari 
+  } = useVideoPreloader();
   const { hasUserInteracted, hasEnabledSound, shouldAutoplayWithSound, enableSound } = useAudio();
   const [currentVideoIndex, setCurrentVideoIndex] = useState(0);
   const [isScrolling, setIsScrolling] = useState(false);
   const [showRefreshHint, setShowRefreshHint] = useState(false);
+  const [loadingState, setLoadingState] = useState<'idle' | 'preloading' | 'error'>('idle');
   const feedContainerRef = React.useRef<HTMLDivElement>(null);
 
-  // TikTok-style preloading: preload next 2-3 videos
+  // Smart preloading with memory management
   useEffect(() => {
     if (videos.length === 0) return;
 
-    const preloadNext = () => {
-      const urlsToPreload: string[] = [];
+    const performSmartPreloading = async () => {
+      setLoadingState('preloading');
       
-      // Preload next 2 videos
-      for (let i = 1; i <= 2; i++) {
+      const urlsToPreload: string[] = [];
+      const preloadRange = isMobileSafari ? 1 : 2; // Smaller range on mobile Safari
+      
+      // Preload next videos
+      for (let i = 1; i <= preloadRange; i++) {
         const nextIndex = (currentVideoIndex + i) % videos.length;
         urlsToPreload.push(videos[nextIndex].videoUrl);
       }
@@ -33,13 +44,27 @@ export const DjannyTokFeed: React.FC = () => {
         urlsToPreload.push(videos[prevIndex].videoUrl);
       }
 
-      preloadVideos(urlsToPreload);
+      try {
+        await preloadVideos(urlsToPreload);
+        
+        // Clean up videos outside current range for memory management
+        const currentRangeUrls = [
+          videos[currentVideoIndex].videoUrl, // Current video
+          ...urlsToPreload // Preloaded videos
+        ];
+        cleanupVideosNotInRange(currentRangeUrls);
+        
+        setLoadingState('idle');
+      } catch (error) {
+        console.warn('Preloading failed:', error);
+        setLoadingState('error');
+      }
     };
 
     // Delay preloading slightly to not interfere with current video
-    const timeout = setTimeout(preloadNext, 500);
+    const timeout = setTimeout(performSmartPreloading, isMobileSafari ? 800 : 500);
     return () => clearTimeout(timeout);
-  }, [currentVideoIndex, videos, preloadVideos]);
+  }, [currentVideoIndex, videos, preloadVideos, cleanupVideosNotInRange, isMobileSafari]);
 
   // Container-based navigation to avoid conflicts with buttons
   useEffect(() => {
@@ -277,6 +302,28 @@ export const DjannyTokFeed: React.FC = () => {
         ))}
       </div>
 
+
+      {/* Performance monitoring (dev mode) */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="absolute top-4 right-4 z-20 bg-black/80 backdrop-blur-sm rounded-lg px-3 py-2 text-xs text-white">
+          <div>Videos: {memoryUsage.videoCount}</div>
+          <div>Pool: {memoryUsage.poolSize}</div>
+          <div>{isMobileSafari ? 'Mobile Safari' : 'Desktop'}</div>
+          <div className={`${loadingState === 'preloading' ? 'text-yellow-400' : loadingState === 'error' ? 'text-red-400' : 'text-green-400'}`}>
+            {loadingState}
+          </div>
+        </div>
+      )}
+
+      {/* Preloading indicator */}
+      {loadingState === 'preloading' && (
+        <div className="absolute top-4 left-4 z-20 bg-black/80 backdrop-blur-sm rounded-full px-3 py-2">
+          <p className="text-white text-xs flex items-center">
+            <div className="w-3 h-3 border border-white border-t-transparent rounded-full animate-spin mr-2"></div>
+            Loading...
+          </p>
+        </div>
+      )}
 
       {/* Updated swipe instruction */}
       {currentVideoIndex === 0 && videos.length > 1 && !hasEnabledSound && (

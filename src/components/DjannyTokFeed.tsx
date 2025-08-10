@@ -283,6 +283,7 @@ export const DjannyTokFeed: React.FC = () => {
               username={video.username}
               isActive={index === currentVideoIndex}
               preloadedVideo={getPreloadedVideo(video.videoUrl)}
+              onSkip={() => setCurrentVideoIndex(prev => (prev + 1) % videos.length)}
             />
           </div>
         ))}

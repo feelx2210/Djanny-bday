@@ -7,13 +7,15 @@ interface VideoPlayerProps {
   username: string;
   isActive: boolean;
   preloadedVideo?: HTMLVideoElement | null;
+  onSkip?: () => void;
 }
 
 export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   videoUrl,
   username,
   isActive,
-  preloadedVideo
+  preloadedVideo,
+  onSkip,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -277,13 +279,23 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
                   setIsLoading(true);
                   const video = videoRef.current;
                   if (video) {
-                    video.load(); // Retry loading
+                    try { video.currentTime = 0; } catch {}
+                    video.src = videoUrl;
+                    video.load(); // Retry loading with fresh request
                   }
                 }}
                 className="bg-secondary hover:bg-secondary/90 text-white px-3 py-1 rounded text-xs transition-colors"
               >
                 Retry
               </button>
+              {onSkip && (
+                <button
+                  onClick={() => onSkip?.()}
+                  className="bg-muted hover:bg-muted/90 text-white px-3 py-1 rounded text-xs transition-colors"
+                >
+                  Skip
+                </button>
+              )}
               <button
                 onClick={() => window.location.reload()}
                 className="bg-primary hover:bg-primary/90 text-white px-3 py-1 rounded text-xs transition-colors"

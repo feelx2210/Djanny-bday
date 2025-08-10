@@ -20,9 +20,9 @@ const isMobileSafari = () => {
 };
 
 // Memory management constants
-const MAX_PRELOADED_VIDEOS = isMobileSafari() ? 2 : 3;
+const MAX_PRELOADED_VIDEOS = isMobileSafari() ? 1 : 3;
 const MAX_VIDEO_POOL_SIZE = isMobileSafari() ? 3 : 5;
-const MEMORY_CLEANUP_INTERVAL = 30000; // 30 seconds
+const MEMORY_CLEANUP_INTERVAL = isMobileSafari() ? 10000 : 30000; // 10s on Mobile Safari, 30s elsewhere
 const LRU_CLEANUP_THRESHOLD = 5; // Clean up after 5 videos loaded
 
 export const useVideoPreloader = () => {
@@ -30,7 +30,13 @@ export const useVideoPreloader = () => {
   const videoPool = useRef<VideoPool>({ available: [], inUse: new Map() });
   const [preloadProgress, setPreloadProgress] = useState<Record<string, number>>({});
   const [memoryUsage, setMemoryUsage] = useState({ videoCount: 0, poolSize: 0 });
-  const loadingTimeouts = useRef<Map<string, NodeJS.Timeout>>(new Map());
+const loadingTimeouts = useRef<Map<string, NodeJS.Timeout>>(new Map());
+  const inFlightPreloads = useRef<Map<string, Promise<HTMLVideoElement>>>(new Map());
+  const handlerCleanups = useRef<Map<string, () => void>>(new Map());
+  const consecutiveFailures = useRef<number>(0);
+  const circuitOpenUntil = useRef<number>(0);
+
+  const isCircuitOpen = () => Date.now() < circuitOpenUntil.current;
 
   // Create video element with optimized settings
   const createVideoElement = useCallback((): HTMLVideoElement => {
@@ -65,7 +71,9 @@ export const useVideoPreloader = () => {
   const returnVideoToPool = useCallback((video: HTMLVideoElement, url: string) => {
     // Clean up the video element
     video.pause();
+    video.src = '';
     video.removeAttribute('src');
+    try { video.currentTime = 0; } catch {}
     video.load(); // This frees memory in most browsers
     
     // Remove from in-use tracking
@@ -113,108 +121,150 @@ export const useVideoPreloader = () => {
     updateMemoryUsage();
   }, [returnVideoToPool, updateMemoryUsage]);
 
-  // Enhanced preload with retry logic and mobile optimizations
+  // Enhanced preload with retry logic, deduplication, and circuit breaker
   const preloadVideo = useCallback((url: string): Promise<HTMLVideoElement> => {
-    return new Promise((resolve, reject) => {
-      // Check if already preloaded and update last used
-      const existing = preloadedVideos.current.get(url);
-      if (existing?.loaded) {
-        existing.lastUsed = Date.now();
-        resolve(existing.element);
-        return;
-      }
+    // Short-circuit if circuit is open
+    if (isCircuitOpen()) {
+      return Promise.reject(new Error('Preload temporarily paused (circuit open)'));
+    }
 
-      // Clear any existing timeout for this URL
-      const existingTimeout = loadingTimeouts.current.get(url);
-      if (existingTimeout) {
-        clearTimeout(existingTimeout);
-      }
+    // Already loaded
+    const existing = preloadedVideos.current.get(url);
+    if (existing?.loaded) {
+      existing.lastUsed = Date.now();
+      return Promise.resolve(existing.element);
+    }
 
-      const video = getVideoFromPool();
-      videoPool.current.inUse.set(url, video);
-      
-      let retryCount = 0;
-      const maxRetries = isMobileSafari() ? 1 : 2; // Fewer retries on mobile Safari
-      
-      const attemptLoad = () => {
-        const handleCanPlay = () => {
-          preloadedVideos.current.set(url, {
-            url,
-            element: video,
-            loaded: true,
-            lastUsed: Date.now()
-          });
-          
-          setPreloadProgress(prev => ({ ...prev, [url]: 100 }));
+    // Deduplicate in-flight preloads
+    const inFlight = inFlightPreloads.current.get(url);
+    if (inFlight) return inFlight;
+
+    const video = getVideoFromPool();
+    videoPool.current.inUse.set(url, video);
+
+    let retryCount = 0;
+    const maxRetries = isMobileSafari() ? 1 : 2; // Fewer retries on mobile Safari
+
+    const promise = new Promise<HTMLVideoElement>((resolve, reject) => {
+      const handleCanPlay = () => {
+        // Clear timeout
+        const t = loadingTimeouts.current.get(url);
+        if (t) {
+          clearTimeout(t);
           loadingTimeouts.current.delete(url);
-          cleanup();
-          updateMemoryUsage();
-          resolve(video);
-        };
+        }
 
-        const handleError = (error: Event) => {
-          console.warn(`Video load error (attempt ${retryCount + 1}):`, url, error);
-          
-          if (retryCount < maxRetries) {
-            retryCount++;
-            // Exponential backoff: 1s, 2s, 4s...
-            const delay = Math.pow(2, retryCount) * 1000;
-            console.log(`Retrying in ${delay}ms...`);
-            
-            setTimeout(() => {
-              video.src = url;
-              video.load();
-            }, delay);
-          } else {
-            cleanup();
-            returnVideoToPool(video, url);
-            loadingTimeouts.current.delete(url);
-            reject(new Error(`Failed to preload video after ${maxRetries} attempts: ${url}`));
-          }
-        };
+        // Detach handlers
+        const detach = handlerCleanups.current.get(url);
+        detach?.();
+        handlerCleanups.current.delete(url);
 
-        const handleProgress = () => {
-          if (video.buffered.length > 0 && video.duration) {
-            const progress = (video.buffered.end(0) / video.duration) * 100;
-            setPreloadProgress(prev => ({ ...prev, [url]: Math.round(progress) }));
-          }
-        };
+        preloadedVideos.current.set(url, {
+          url,
+          element: video,
+          loaded: true,
+          lastUsed: Date.now(),
+        });
 
-        const handleLoadStart = () => {
-          setPreloadProgress(prev => ({ ...prev, [url]: 0 }));
-        };
-
-        const cleanup = () => {
-          video.removeEventListener('canplay', handleCanPlay);
-          video.removeEventListener('error', handleError);
-          video.removeEventListener('progress', handleProgress);
-          video.removeEventListener('loadstart', handleLoadStart);
-        };
-
-        video.addEventListener('canplay', handleCanPlay, { once: true });
-        video.addEventListener('error', handleError);
-        video.addEventListener('progress', handleProgress);
-        video.addEventListener('loadstart', handleLoadStart, { once: true });
-        
-        video.src = url;
-        video.load();
+        setPreloadProgress(prev => ({ ...prev, [url]: 100 }));
+        updateMemoryUsage();
+        consecutiveFailures.current = 0; // reset on success
+        inFlightPreloads.current.delete(url);
+        resolve(video);
       };
+
+      const handleError = (error: Event) => {
+        console.warn(`Video load error (attempt ${retryCount + 1}):`, url, error);
+
+        const t = loadingTimeouts.current.get(url);
+        if (t) {
+          clearTimeout(t);
+          loadingTimeouts.current.delete(url);
+        }
+
+        if (retryCount < maxRetries) {
+          retryCount++;
+          const delay = Math.pow(2, retryCount) * 1000; // 1s, 2s, 4s
+          setTimeout(() => {
+            video.src = url;
+            video.load();
+          }, delay);
+        } else {
+          const detach = handlerCleanups.current.get(url);
+          detach?.();
+          handlerCleanups.current.delete(url);
+
+          returnVideoToPool(video, url);
+          inFlightPreloads.current.delete(url);
+          consecutiveFailures.current += 1;
+          if (consecutiveFailures.current >= 2) {
+            const cooldown = isMobileSafari() ? 15000 : 8000;
+            circuitOpenUntil.current = Date.now() + cooldown;
+          }
+          reject(new Error(`Failed to preload video after ${maxRetries} attempts: ${url}`));
+        }
+      };
+
+      const handleProgress = () => {
+        if (video.buffered.length > 0 && video.duration) {
+          const progress = (video.buffered.end(0) / video.duration) * 100;
+          setPreloadProgress(prev => ({ ...prev, [url]: Math.round(progress) }));
+        }
+      };
+
+      const handleLoadStart = () => {
+        setPreloadProgress(prev => ({ ...prev, [url]: 0 }));
+      };
+
+      const detach = () => {
+        video.removeEventListener('canplay', handleCanPlay);
+        video.removeEventListener('error', handleError);
+        video.removeEventListener('progress', handleProgress);
+        video.removeEventListener('loadstart', handleLoadStart);
+      };
+
+      handlerCleanups.current.set(url, detach);
+
+      video.addEventListener('canplay', handleCanPlay, { once: true });
+      video.addEventListener('error', handleError);
+      video.addEventListener('progress', handleProgress);
+      video.addEventListener('loadstart', handleLoadStart, { once: true });
+
+      video.src = url;
+      video.load();
 
       // Set timeout for stuck loads
       const timeout = setTimeout(() => {
         console.warn(`Video loading timeout: ${url}`);
+
+        const d = handlerCleanups.current.get(url);
+        d?.();
+        handlerCleanups.current.delete(url);
+
         returnVideoToPool(video, url);
         loadingTimeouts.current.delete(url);
+        inFlightPreloads.current.delete(url);
+        consecutiveFailures.current += 1;
+        if (consecutiveFailures.current >= 2) {
+          const cooldown = isMobileSafari() ? 15000 : 8000;
+          circuitOpenUntil.current = Date.now() + cooldown;
+        }
         reject(new Error(`Video loading timeout: ${url}`));
-      }, isMobileSafari() ? 15000 : 10000); // Longer timeout on mobile Safari
-      
+      }, isMobileSafari() ? 15000 : 10000);
+
       loadingTimeouts.current.set(url, timeout);
-      attemptLoad();
     });
+
+    inFlightPreloads.current.set(url, promise);
+    return promise;
   }, [getVideoFromPool, returnVideoToPool, updateMemoryUsage]);
 
   // Smart preloading with memory management
   const preloadVideos = useCallback(async (urls: string[]) => {
+    if (isCircuitOpen()) {
+      console.warn('Preload skipped (circuit open)');
+      return [];
+    }
     // Clean up old videos first
     cleanupLRU();
     

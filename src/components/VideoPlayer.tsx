@@ -7,6 +7,7 @@ interface VideoPlayerProps {
   username: string;
   isActive: boolean;
   preloadedVideo?: HTMLVideoElement | null;
+  isInView?: boolean;
   onSkip?: () => void;
 }
 
@@ -15,6 +16,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   username,
   isActive,
   preloadedVideo,
+  isInView = true,
   onSkip,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
@@ -39,17 +41,16 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     video.muted = shouldBeMuted;
   }, [shouldBeMuted]);
 
-  // Use preloaded video if available
+  // Use preloaded video if available (only when in view)
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || !preloadedVideo) return;
+    if (!video || !preloadedVideo || !isInView) return;
 
-    // Copy preloaded video state
     try {
       video.src = preloadedVideo.src;
       video.currentTime = 0;
       video.muted = shouldBeMuted;
-      
+
       if (preloadedVideo.readyState >= 2) {
         setIsLoading(false);
         setHasError(false);
@@ -57,7 +58,37 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     } catch (error) {
       console.warn('Failed to use preloaded video:', error);
     }
-  }, [preloadedVideo, shouldBeMuted]);
+  }, [preloadedVideo, shouldBeMuted, isInView]);
+
+  // Manage mounting/unmounting source based on viewport visibility
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video) return;
+
+    if (!isInView) {
+      try {
+        video.pause();
+      } catch {}
+      setIsPlaying(false);
+      // Aggressively release resources
+      try { video.removeAttribute('src'); } catch {}
+      video.src = '';
+      try { video.load(); } catch {}
+      setIsLoading(false);
+      setHasError(false);
+      return;
+    }
+
+    // If entering view and no src set, attach src
+    if (isInView && !video.src) {
+      try {
+        video.src = videoUrl;
+        video.load();
+      } catch (e) {
+        console.warn('Failed to set video src on enter view', e);
+      }
+    }
+  }, [isInView, videoUrl]);
 
   // Enhanced video loading events with timeout handling
   useEffect(() => {
@@ -241,7 +272,6 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       {/* Video with TikTok-style optimization */}
       <video
         ref={videoRef}
-        src={videoUrl}
         className="w-full h-full object-contain touch-manipulation"
         onClick={handleVideoClick}
         

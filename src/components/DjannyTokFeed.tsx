@@ -276,17 +276,25 @@ export const DjannyTokFeed: React.FC = () => {
           height: `${videos.length * 100}vh`
         }}
       >
-        {videos.map((video, index) => (
-          <div key={video.id} className="w-full h-screen flex-shrink-0">
-            <VideoPlayer
-              videoUrl={video.videoUrl}
-              username={video.username}
-              isActive={index === currentVideoIndex}
-              preloadedVideo={getPreloadedVideo(video.videoUrl)}
-              onSkip={() => setCurrentVideoIndex(prev => (prev + 1) % videos.length)}
-            />
-          </div>
-        ))}
+        {videos.map((video, index) => {
+          const isInView = Math.abs(index - currentVideoIndex) <= 1;
+          return (
+            <div key={video.id} className="w-full h-screen flex-shrink-0">
+              {isInView ? (
+                <VideoPlayer
+                  videoUrl={video.videoUrl}
+                  username={video.username}
+                  isActive={index === currentVideoIndex}
+                  preloadedVideo={getPreloadedVideo(video.videoUrl)}
+                  isInView={isInView}
+                  onSkip={() => setCurrentVideoIndex(prev => (prev + 1) % videos.length)}
+                />
+              ) : (
+                <div className="w-full h-full bg-black" aria-hidden="true" />
+              )}
+            </div>
+          );
+        })}
       </div>
 
       {/* Progress indicator */}

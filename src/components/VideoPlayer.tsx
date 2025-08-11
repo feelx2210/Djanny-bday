@@ -201,51 +201,16 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
     };
   }, [videoUrl, loadingTimeout, isLoading, hasError, isInView]);
 
-  // TikTok-style autoplay (wait for canplay when needed)
+  // Manual playback only - pause when not active or not in view
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || hasError || !isInView) return;
+    if (!video) return;
 
-    let cancelled = false;
-
-    const playNow = async () => {
-      try {
-        video.muted = shouldBeMuted;
-        await video.play();
-        if (!cancelled) setIsPlaying(true);
-      } catch (error) {
-        console.warn('Autoplay failed:', error);
-        if (!hasUserEverEnabledSound) {
-          try {
-            video.muted = true;
-            await video.play();
-            if (!cancelled) setIsPlaying(true);
-            return;
-          } catch {}
-        }
-        if (!cancelled) setIsPlaying(false);
-      }
-    };
-
-    if (isActive) {
-      if (video.readyState >= 2) {
-        playNow();
-      } else {
-        const onCanPlay = () => {
-          video.removeEventListener('canplay', onCanPlay);
-          if (!cancelled) playNow();
-        };
-        video.addEventListener('canplay', onCanPlay, { once: true });
-      }
-    } else {
+    if (!isActive || !isInView) {
       try { video.pause(); } catch {}
       setIsPlaying(false);
     }
-
-    return () => {
-      cancelled = true;
-    };
-  }, [isActive, hasError, shouldBeMuted, isInView, hasUserEverEnabledSound]);
+  }, [isActive, isInView]);
 
   const handleVideoClick = () => {
     console.log('Video clicked, isPlaying:', isPlaying);
@@ -450,7 +415,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
             {!hasEnabledSound ? (
               <>
                 <VolumeX className="w-3 h-3 mr-1" />
-                <span>Tap anywhere for sound</span>
+                <span>Tap to play</span>
               </>
             ) : shouldBeMuted ? (
               <>

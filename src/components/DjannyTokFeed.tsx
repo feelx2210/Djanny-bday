@@ -261,7 +261,7 @@ export const DjannyTokFeed: React.FC = () => {
           <div className="bg-black/80 backdrop-blur-sm rounded-lg px-4 py-3">
             <p className="text-white text-sm flex items-center">
               <VolumeX className="w-4 h-4 mr-2" />
-              Tap anywhere for sound
+              Tap to play
             </p>
           </div>
         </div>
@@ -338,7 +338,7 @@ export const DjannyTokFeed: React.FC = () => {
       {currentVideoIndex === 0 && videos.length > 1 && !hasEnabledSound && (
         <div className="absolute bottom-32 left-1/2 transform -translate-x-1/2 z-10 animate-fade-in">
           <div className="bg-black/50 backdrop-blur-sm rounded-full px-4 py-2">
-            <p className="text-white text-sm">Swipe up for sound & more videos 👆</p>
+            <p className="text-white text-sm">Swipe up for more videos 👆</p>
           </div>
         </div>
       )}

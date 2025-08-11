@@ -26,6 +26,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   const [isLoading, setIsLoading] = useState(true);
   const [hasError, setHasError] = useState(false);
   const [loadingTimeout, setLoadingTimeout] = useState<NodeJS.Timeout | null>(null);
+  const unstickAttempts = useRef(0);
 
   const { hasUserInteracted, hasEnabledSound, hasUserEverEnabledSound, isGloballyMuted, toggleGlobalMute, shouldAutoplayWithSound, enableSound } = useAudio();
 
@@ -93,7 +94,7 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
   // Enhanced video loading events with timeout handling
   useEffect(() => {
     const video = videoRef.current;
-    if (!video) return;
+    if (!video || !isInView) return;
 
     const handleLoadStart = () => {
       setIsLoading(true);
@@ -108,6 +109,20 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
       const isMobile = /iPad|iPhone|iPod|Android/.test(navigator.userAgent);
       const timeout = setTimeout(() => {
         console.warn('Video loading timeout:', videoUrl);
+        // Try Safari unstick once
+        if (unstickAttempts.current < 1 && isInView) {
+          unstickAttempts.current += 1;
+          try {
+            const buster = videoUrl + (videoUrl.includes('?') ? '&' : '?') + 'cb=' + Date.now();
+            video.src = buster;
+            video.load();
+            setIsLoading(true);
+            setHasError(false);
+            return;
+          } catch (e) {
+            console.warn('Unstick attempt failed', e);
+          }
+        }
         setIsLoading(false);
         setHasError(true);
       }, isMobile ? 20000 : 15000);
@@ -128,6 +143,20 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
 
     const handleError = (e: Event) => {
       console.error('Video error:', videoUrl, e);
+      // Attempt an unstick retry once with cache-busting
+      if (unstickAttempts.current < 1 && isInView) {
+        unstickAttempts.current += 1;
+        try {
+          const buster = videoUrl + (videoUrl.includes('?') ? '&' : '?') + 'cb=' + Date.now();
+          video.src = buster;
+          video.load();
+          setIsLoading(true);
+          setHasError(false);
+          return;
+        } catch (err) {
+          console.warn('Unstick attempt after error failed', err);
+        }
+      }
       setIsLoading(false);
       setHasError(true);
       
@@ -170,45 +199,53 @@ export const VideoPlayer: React.FC<VideoPlayerProps> = ({
         clearTimeout(loadingTimeout);
       }
     };
-  }, [videoUrl, loadingTimeout, isLoading, hasError]);
+  }, [videoUrl, loadingTimeout, isLoading, hasError, isInView]);
 
-  // TikTok-style autoplay
+  // TikTok-style autoplay (wait for canplay when needed)
   useEffect(() => {
     const video = videoRef.current;
-    if (!video || hasError) return;
+    if (!video || hasError || !isInView) return;
 
-    const attemptPlay = async () => {
+    let cancelled = false;
+
+    const playNow = async () => {
       try {
         video.muted = shouldBeMuted;
-        
-        if (isActive) {
-          await video.play();
-          setIsPlaying(true);
-        } else {
-          video.pause();
-          setIsPlaying(false);
-        }
+        await video.play();
+        if (!cancelled) setIsPlaying(true);
       } catch (error) {
         console.warn('Autoplay failed:', error);
-        // Only use muted fallback if user hasn't enabled sound yet
         if (!hasUserEverEnabledSound) {
           try {
             video.muted = true;
             await video.play();
-            setIsPlaying(true);
-          } catch {
-            setIsPlaying(false);
-          }
-        } else {
-          // Respect user's sound preference, don't force mute
-          setIsPlaying(false);
+            if (!cancelled) setIsPlaying(true);
+            return;
+          } catch {}
         }
+        if (!cancelled) setIsPlaying(false);
       }
     };
 
-    const timeout = setTimeout(attemptPlay, 100);
-    return () => clearTimeout(timeout);
-  }, [isActive, hasError, shouldBeMuted]);
+    if (isActive) {
+      if (video.readyState >= 2) {
+        playNow();
+      } else {
+        const onCanPlay = () => {
+          video.removeEventListener('canplay', onCanPlay);
+          if (!cancelled) playNow();
+        };
+        video.addEventListener('canplay', onCanPlay, { once: true });
+      }
+    } else {
+      try { video.pause(); } catch {}
+      setIsPlaying(false);
+    }
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isActive, hasError, shouldBeMuted, isInView, hasUserEverEnabledSound]);
 
   const handleVideoClick = () => {
     console.log('Video clicked, isPlaying:', isPlaying);

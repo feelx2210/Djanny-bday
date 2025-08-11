@@ -277,7 +277,7 @@ export const DjannyTokFeed: React.FC = () => {
         }}
       >
         {videos.map((video, index) => {
-          const isInView = Math.abs(index - currentVideoIndex) <= 1;
+          const isInView = isMobileSafari ? index === currentVideoIndex : Math.abs(index - currentVideoIndex) <= 1;
           return (
             <div key={video.id} className="w-full h-screen flex-shrink-0">
               {isInView ? (

@@ -261,12 +261,16 @@ const loadingTimeouts = useRef<Map<string, NodeJS.Timeout>>(new Map());
 
   // Smart preloading with memory management
   const preloadVideos = useCallback(async (urls: string[]) => {
-    if (isCircuitOpen()) {
-      console.warn('Preload skipped (circuit open)');
-      return [];
-    }
-    // Clean up old videos first
-    cleanupLRU();
+     if (isMobileSafari()) {
+       console.warn('Preload skipped (Mobile Safari)');
+       return [];
+     }
+     if (isCircuitOpen()) {
+       console.warn('Preload skipped (circuit open)');
+       return [];
+     }
+     // Clean up old videos first
+     cleanupLRU();
     
     // Limit concurrent preloads on mobile Safari
     const maxConcurrent = isMobileSafari() ? 1 : 2;
